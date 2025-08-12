@@ -8,6 +8,8 @@ const DATA_FILE = 'wagers.json';
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static('public'));
+
 
 function loadData() {
   if (!fs.existsSync(DATA_FILE)) {
@@ -64,5 +66,5 @@ app.post('/wagers/:id/vote', (req, res) => {
   res.json({ success: true });
 });
 
-const PORT = 3000;
+const PORT = 3030;
 app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));

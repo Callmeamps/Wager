@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Wager & Dare Tracker</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { color: #333; }
+    .wager-card { border: 1px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 5px; }
+    .wager-card h3 { margin: 0; }
+    label { display: block; margin-top: 10px; }
+    input, textarea, select { width: 100%; padding: 5px; margin-top: 5px; }
+    button { padding: 8px 12px; margin-top: 10px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Wager & Dare Tracker</h1>
+
+  <div id="create-form">
+    <h2>Create a Wager/Dare</h2>
+    <label>Title: <input type="text" id="title"></label>
+    <label>Description: <textarea id="description"></textarea></label>
+    <label>Stake: <input type="text" id="stake"></label>
+    <label>Participants (comma separated): <input type="text" id="participants"></label>
+    <label>Deadline: <input type="date" id="deadline"></label>
+    <button onclick="createWager()">Create</button>
+  </div>
+
+  <h2>Active Wagers</h2>
+  <div id="wager-list"></div>
+
+  <script>
+    const API_URL = 'http://localhost:3000';
+
+    async function fetchWagers() {
+      const res = await fetch(`${API_URL}/wagers`);
+      const data = await res.json();
+      renderWagers(data);
+    }
+
+    async function createWager() {
+      const wager = {
+        title: document.getElementById('title').value,
+        description: document.getElementById('description').value,
+        stake: document.getElementById('stake').value,
+        participants: document.getElementById('participants').value.split(',').map(p => p.trim()),
+        deadline: document.getElementById('deadline').value
+      };
+      await fetch(`${API_URL}/wagers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(wager)
+      });
+      fetchWagers();
+    }
+
+    async function submitProof(id) {
+      const link = prompt('Enter proof link:');
+      if (!link) return;
+      await fetch(`${API_URL}/wagers/${id}/proof`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: 'Me', link })
+      });
+      fetchWagers();
+    }
+
+    async function voteOnWager(id, isValid) {
+      await fetch(`${API_URL}/wagers/${id}/vote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voter: 'Me', isValid })
+      });
+      fetchWagers();
+    }
+
+    function renderWagers(wagers) {
+      const list = document.getElementById('wager-list');
+      list.innerHTML = '';
+      wagers.forEach(w => {
+        const card = document.createElement('div');
+        card.className = 'wager-card';
+        card.innerHTML = `
+          <h3>${w.title}</h3>
+          <p>${w.description}</p>
+          <p><strong>Stake:</strong> ${w.stake}</p>
+          <p><strong>Participants:</strong> ${w.participants.join(', ')}</p>
+          <p><strong>Deadline:</strong> ${w.deadline}</p>
+          <p><strong>Status:</strong> ${w.status}</p>
+          <button onclick="submitProof(${w.id})">Submit Proof</button>
+          <button onclick="voteOnWager(${w.id}, true)">Vote Valid</button>
+          <button onclick="voteOnWager(${w.id}, false)">Vote Invalid</button>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    fetchWagers();
+  </script>
+</body>
+</html>
