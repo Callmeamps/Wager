@@ -1,0 +1,106 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdWagers Wager[] @relation("CreatorWagers")
+  participations WagerParticipant[]
+  votes        Vote[]
+  proofs       Proof[]
+  comments     Comment[]
+}
+
+model Wager {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  stakeAmount   Decimal?
+  stakeCurrency String  @default("USD")
+  deadline     DateTime?
+  status       String  @default("PENDING")
+  resolution   String?
+  createdBy    String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  creator    User    @relation("CreatorWagers", fields: [createdBy], references: [id])
+  participants WagerParticipant[]
+  proofs      Proof[]
+  votes       Vote[]
+  comments    Comment[]
+
+  @@index([status])
+  @@index([deadline])
+  @@index([createdBy])
+}
+
+model WagerParticipant {
+  wagerId     String
+  userId      String
+  joinedAt    DateTime @default(now())
+  
+  wager Wager @relation(fields: [wagerId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@id([wagerId, userId])
+}
+
+model Proof {
+  id        String   @id @default(cuid())
+  wagerId   String
+  userId    String
+  link      String
+  evidence  String?
+  createdAt DateTime @default(now())
+
+  wager Wager @relation(fields: [wagerId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@index([wagerId])
+  @@index([userId])
+}
+
+model Vote {
+  id       String   @id @default(cuid())
+  wagerId  String
+  voterId  String
+  isValid  Boolean
+  comment  String?
+  createdAt DateTime @default(now())
+
+  wager  Wager @relation(fields: [wagerId], references: [id], onDelete: Cascade)
+  voter  User  @relation(fields: [voterId], references: [id])
+
+  @@unique([wagerId, voterId])
+  @@index([wagerId])
+  @@index([voterId])
+}
+
+model Comment {
+  id       String   @id @default(cuid())
+  wagerId  String
+  userId   String
+  content  String
+  createdAt DateTime @default(now())
+
+  wager Wager @relation(fields: [wagerId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@index([wagerId])
+  @@index([userId])
+}

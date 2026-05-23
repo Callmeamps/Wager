@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wager Tracker — Development Guide</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.7;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 2rem;
+      color: #1f2937;
+      background: #f9fafb;
+    }
+    h1 { border-bottom: 3px solid #4f46e5; padding-bottom: 0.5rem; }
+    h2 { margin-top: 2rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.25rem; }
+    h3 { margin-top: 1.5rem; color: #374151; }
+    code {
+      background: #f3f4f6;
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.9em;
+      font-family: monospace;
+    }
+    pre {
+      background: #1f2937;
+      color: #f9fafb;
+      padding: 1rem;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+    pre code { background: none; color: inherit; padding: 0; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+    th, td { border: 1px solid #e5e7eb; padding: 0.75rem; text-align: left; }
+    th { background: #f3f4f6; font-weight: 600; }
+    ul, ol { padding-left: 1.5rem; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { padding: 0.5rem 0; padding-left: 1.5rem; position: relative; }
+    .checklist li::before { content: "☐"; position: absolute; left: 0; color: #4f46e5; font-weight: bold; }
+    a { color: #4f46e5; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .nav {
+      display: flex; gap: 1rem; margin-bottom: 2rem;
+      padding: 1rem; background: #eef2ff; border-radius: 8px;
+    }
+    .warning {
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 1rem;
+      margin: 1rem 0;
+      border-radius: 0 8px 8px 0;
+    }
+    .note {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      padding: 1rem;
+      margin: 1rem 0;
+      border-radius: 0 8px 8px 0;
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a href="index.html">← Docs Home</a>
+    <span style="margin-left: auto;">Development Guide</span>
+  </nav>
+
+  <h1>Development Guide</h1>
+
+  <p>How to set up, develop, test, and deploy the Wager Tracker project.</p>
+
+  <h2>Prerequisites</h2>
+  <ul>
+    <li>Node.js 22+</li>
+    <li>npm or pnpm (npm recommended)</li>
+    <li>Git</li>
+    <li>Docker (optional, for Dolt)</li>
+    <li>Prisma CLI (installed via devDeps)</li>
+  </ul>
+
+  <div class="warning">
+    <strong>Port 4317</strong>: Dev server uses port 5173 by default. To avoid conflicts, configure <code>PORT=4317</code> in <code>.env</code>.
+  </div>
+
+  <h2>Local Setup</h2>
+
+  <h3>1. Clone Repository</h3>
+  <pre><code>git clone https://github.com/your-org/wager.git
+cd wager</code></pre>
+
+  <h3>2. Install Dependencies</h3>
+  <pre><code>npm ci</code></pre>
+
+  <h3>3. Environment Configuration</h3>
+  <p>Create <code>.env</code> in project root:</p>
+  <pre><code># Database (SQLite file path)
+DATABASE_URL="file:./data/wagers.db"
+
+# JWT secret (generate: openssl rand -base64 32)
+JWT_SECRET="your-secret-here-32-bytes-minimum"
+
+# Server port (avoid 3000/5173)
+PORT=4317
+
+# Node environment
+NODE_ENV="development"
+
+# Allowed CORS origins (comma-separated)
+ALLOWED_ORIGINS="http://localhost:4317"
+
+# Optional: email (Resend API key for notifications)
+RESEND_API_KEY=""</code></pre>
+
+  <div class="note">
+    <strong>Note</strong>: For Dolt, use: <code>DATABASE_URL="postgresql://user:pass@localhost:5432/wagers"</code> and start Dolt container first.
+  </div>
+
+  <h3>4. Initialize Database</h3>
+  <pre><code>npx prisma generate
+npx prisma migrate dev --name init</code></pre>
+
+  <p>This creates <code>prisma/migrations/</code> and applies schema to <code>data/wagers.db</code>. To seed demo data:</p>
+  <pre><code>npx prisma db seed</code></pre>
+
+  <p><em>Note: Add seed script to <code>package.json</code>: <code>"prisma": { "seed": "tsx prisma/seed.ts" }</code></em></p>
+
+  <h3>5. Start Development Server</h3>
+  <pre><code>npm run dev</code></pre>
+
+  <p>Open <code>http://localhost:4317</code>. Hot reload enabled.</p>
+
+  <h2>Project Structure</h2>
+  <pre><code>wager/
+├── src/
+│   ├── lib/
+│   │   ├── components/     # Svelte components
+│   │   ├── db/            # Prisma client instance
+│   │   ├── server/        # server-only libs (services, utils)
+│   │   ├── stores/        # Svelte stores (wagers, auth)
+│   │   ├── types.ts       # shared types
+│   │   └── utils/         # helpers (format, validation)
+│   ├── routes/
+│   │   ├── (public)/      # login, register pages
+│   │   ├── (protected)/   # dashboard, wagers, profile
+│   │   ├── api/           # API endpoints mirroring PRD
+│   │   ├── +layout.svelte
+│   │   ├── +layout.server.ts
+│   │   └── +page.svelte   # home page
+│   └── app.html           # SvelteKit entry template
+├── prisma/
+│   ├── schema.prisma      # DB schema
+│   ├── migrations/        # migration history
+│   └── seed.ts            # seed data script
+├── public/                # static assets (favicon, robots)
+├── static/                # build output (gitignored)
+├── data/                  # SQLite file (gitignored)
+├── uploads/               # file uploads (gitignored)
+├── .env.example           # env template
+├── .env.local             # local overrides (gitignored)
+├── svelte.config.js
+├── vite.config.ts
+├── package.json
+└── tsconfig.json</code></pre>
+
+  <h2>Scripts</h2>
+  <table>
+    <tr><th>npm run dev</th><td>Start SvelteKit dev server (hot reload)</td></tr>
+    <tr><th>npm run build</th><td>Build production bundle</td></tr>
+    <tr><th>npm run preview</th><td>Preview production build locally</td></tr>
+    <tr><th>npm run check</th><td>TypeScript type checking</td></tr>
+    <tr><th>npm run lint</th><td>Run ESLint</td></tr>
+    <tr><th>npm run format</th><td>Format code with Prettier</td></tr>
+    <tr><th>npm run test</th><td>Run Vitest (unit + integration)</td></tr>
+    <tr><th>npm run test:e2e</th><td>Run Playwright e2e tests</td></tr>
+    <tr><th>npm run prisma:studio</th><td>Open Prisma Studio GUI</td></tr>
+    <tr><th>npm run prisma:generate</th><td>Generate Prisma client</td></tr>
+    <tr><th>npm run prisma:migrate</th><td>Create and apply migration</td></tr>
+    <tr><th>npm run prisma:seed</th><td>Run seed script</td></tr>
+  </table>
+
+  <h2>Coding Standards</h2>
+
+  <h3>TypeScript</h3>
+  <ul>
+    <li><strong>Strict mode</strong>: <code>strict: true</code> in tsconfig.json</li>
+    <li>No <code>any</code> types. Use <code>unknown</code> if truly uncertain.</li>
+    <li>Prefer interfaces over type aliases for objects.</li>
+    <li>Export types from <code>src/lib/types.ts</code> when shared.</li>
+  </ul>
+
+  <h3>Svelte Components</h3>
+  <ul>
+    <li>Use <code>&lt;script lang="ts"&gt;</code></li>
+    <li><code>let</code> props with explicit types</li>
+    <li>Reactive statements: <code>$: computed = ...</code></li>
+    <li>Avoid imperative DOM manipulation; use bindings</li>
+    <li>Extract complex logic to <code>lib/utils/</code> or stores</li>
+  </ul>
+
+  <pre><code>&lt;script lang="ts"&gt;
+  interface Props {
+    wager: Wager;
+  }
+  let { wager }: Props = $props();
+
+  let showProofForm = $state(false);
+  let proofLink = $state("");
+
+  async function submitProof() {
+    await api.post(`/wagers/${wager.id}/proofs`, { link: proofLink });
+    showProofForm = false;
+  }
+&lt;/script&gt;
+
+&lt;div class="wager-card"&gt;
+  &lt;h3&gt;{wager.title}&lt;/h3&gt;
+  &lt;button onclick={() => showProofForm = true}&gt;Submit Proof&lt;/button&gt;
+&lt;/div&gt;</code></pre>
+
+  <h3>Naming Conventions</h3>
+  <ul>
+    <li>Files: kebab-case (<code>wager-card.svelte</code>, <code>create-wager.ts</code>)</li>
+    <li>Components: PascalCase (<code>WagerCard</code>, <code>ProofForm</code>)</li>
+    <li>Functions/vars: camelCase (<code>submitProof</code>, <code>wagerList</code>)</li>
+    <li>Constants: UPPER_SNAKE (<code>MAX_UPLOAD_SIZE</code>)</li>
+    <li>Types/interfaces: PascalCase (<code>Wager</code>, <code>CreateWagerInput</code>)</li>
+  </ul>
+
+  <h3>API Client</h3>
+  <p>Use centralized <code>src/lib/utils/api.ts</code> wrapper:</p>
+  <pre><code>import { api } from '$lib/utils/api';
+
+// GET
+const wagers = await api.get('/wagers?status=pending');
+
+// POST with body
+await api.post('/wagers', wagerData);
+
+// Error handling: api throws on non-2xx, catch in component
+try {
+  await api.post(...);
+} catch (err) {
+  toast.error(err.message);
+}</code></pre>
+
+  <h3>Validation</h3>
+  <ul>
+    <li>Server-side: Zod schemas in <code>src/lib/server/validation.ts</code></li>
+    <li>Client-side: same schemas shared via <code>zod</code> package</li>
+    <li>Never trust client; always validate on API route</li>
+  </ul>
+
+  <h2>Testing</h2>
+
+  <h3>Unit Tests (Vitest)</h3>
+  <p>Location: <code>src/lib/__tests__/</code> mirror structure.</p>
+  <pre><code>describe('formatCurrency', () => {
+  it('formats USD correctly', () => {
+    expect(formatCurrency(1234.56, 'USD')).toBe('$1,234.56');
+  });
+});</code></pre>
+
+  <h3>Component Tests (Testing Library)</h3>
+  <pre><code>import { render, screen } from '@testing-library/svelte';
+import WagerCard from '../WagerCard.svelte';
+
+test('renders wager title', () => {
+  render(WagerCard, { props: { wager: mockWager } });
+  expect(screen.getByText(mockWager.title)).toBeInTheDocument();
+});</code></pre>
+
+  <h3>Integration Tests (API)</h3>
+  <p>Use <code>@sveltejs/kit-testing</code> or <code>supertest</code>:</p>
+  <pre><code>import { get } from '$app/request';
+import { db } from '$lib/db';
+
+beforeEach(async () => {
+  await db.$executeRaw`DELETE FROM Vote`;
+  await db.$executeRaw`DELETE FROM Wager`;
+});
+
+test('POST /api/v1/wagers creates wager', async () => {
+  const res = await get('/api/v1/wagers');
+  expect(res.status).toBe(200);
+});</code></pre>
+
+  <h3>E2E Tests (Playwright)</h3>
+  <p>Location: <code>tests/e2e/</code>. Use test DB (separate <code>.env.e2e</code>):</p>
+  <pre><code>import { test, expect } from '@playwright/test';
+
+test('user can create wager', async ({ page }) => {
+  await page.goto('/login');
+  await page.fill('[name=email]', 'test@example.com');
+  await page.fill('[name=password]', 'password123');
+  await page.click('button[type=submit]');
+  await expect(page).toHaveURL('/dashboard');
+
+  await page.click('text=Create Wager');
+  await page.fill('#title', 'Test wager');
+  await page.click('button:has-text("Create")');
+
+  await expect(page.locator('.wager-card')).toContainText('Test wager');
+});</code></pre>
+
+  <h3>Running Tests</h3>
+  <pre><code># unit + integration
+npm run test
+
+# e2e (needs browser)
+npm run test:e2e
+
+# watch mode
+npm run test -- --watch
+
+# with coverage
+npm run test -- --coverage</code></pre>
+
+  <h2>Database Migrations</h2>
+
+  <h3>Making Schema Changes</h3>
+  <ol>
+    <li>Edit <code>prisma/schema.prisma</code></li>
+    <li>Run: <code>npx prisma migrate dev --name descriptive_name</code></li>
+    <li>Prisma creates new migration file in <code>prisma/migrations/</code></li>
+    <li>Review generated SQL (in <code>migrations/.../migration.sql</code>)</li>
+    <li>Commit both schema.prisma and migration file</li>
+  </ol>
+
+  <h3>Resetting DB (dev only)</h3>
+  <pre><code>npx prisma migrate reset   # drops and reapplies all migrations
+npx prisma db seed         # reseeds</code></pre>
+
+  <h3>Production Migration</h3>
+  <pre><code>npx prisma migrate deploy   # applies pending migrations, no dev prompts</code></pre>
+
+  <p>Always test migrations on staging copy first.</p>
+
+  <h2>Dolt Specifics</h2>
+
+  <h3>Starting Dolt</h3>
+  <pre><code>docker run -p 5432:5432 -e POSTGRES_PASSWORD=localpass -e POSTGRES_DB=wagers dolt/dolt-postgres</code></pre>
+
+  <h3>Using Dolt CLI</h3>
+  <p>Install dolt from <code>https://doltstorage.com/</code>, then:</p>
+  <pre><code>dolt clone your-org/wagers
+cd wagers
+dolt checkout -b feature-branch
+# edit data via app
+dolt add .
+dolt commit -m "update wager status"
+dolt push origin feature-branch</code></pre>
+
+  <h3>Viewing History</h3>
+  <pre><code>dolt log --all
+dolt diff main..feature-branch
+dolt sql -q "SELECT * FROM wagers FOR DATABASE_TAG 'main@2025-05-01'"</code></pre>
+
+  <h2>Logging</h2>
+
+  <p>Use <code>src/lib/server/log.ts</code> (pino) for structured logs:</p>
+  <pre><code>import { logger } from '$lib/server/log';
+
+logger.info({ userId, wagerId }, 'wager_created');
+logger.error({ error: err }, 'db_error');</code></pre>
+
+  <p>Logs in JSON format. View in dev console; aggregate in prod (Logtail, Datadog).</p>
+
+  <h2>Environment Variables Reference</h2>
+  <table>
+    <tr><th>DATABASE_URL</th><td>SQLite: <code>file:./data/wagers.db</code>. Dolt: <code>postgresql://user:pass@host:5432/wagers</code></td></tr>
+    <tr><th>JWT_SECRET</th><td>At least 32 bytes. Use <code>openssl rand -base64 32</code>.</td></tr>
+    <tr><th>PORT</th><td>Server port. Default 5173 (SvelteKit). Set to 4317 to avoid conflict.</td></tr>
+    <tr><th>NODE_ENV</th><td><code>development</code> or <code>production</code></td></tr>
+    <tr><th>ALLOWED_ORIGINS</th><td>Comma-separated allowed CORS origins.</td></tr>
+    <tr><th>RESEND_API_KEY</th><td>For email notifications (Resend service).</td></tr>
+  </table>
+
+  <h2>Deployment</h2>
+
+  <h3>Build</h3>
+  <pre><code>npm run build</code></pre>
+  <p>Output in <code>.svelte-kit/output</code>. Build includes server and static assets.</p>
+
+  <h3>Docker Build</h3>
+  <pre><code>docker build -t wager:latest .
+docker run -p 4317:4317 --env-file .env wager:latest</code></pre>
+
+  <h3>Deploy to Railway</h3>
+  <ol>
+    <li>Push code to GitHub</li>
+    <li>Create new Railway service, connect repo</li>
+    <li>Set build command: <code>npm run build</code></li>
+    <li>Set start command: <code>npm start</code></li>
+    <li>Add environment variables (from <code>.env</code>)</li>
+    <li>Add PostgreSQL service (for Dolt) or use mounted volume for SQLite (not recommended)</li>
+    <li>Deploy</li>
+  </ol>
+
+  <h3>Deploy to Vercel</h3>
+  <p>Vercel edge runtime may not support SSE or file system DB. Use Node.js server:</p>
+  <ul>
+    <li>Set <code>vercel.json</code> with <code>"functions": { "api/**/*.ts": { "maxDuration": 10 } }</code></li>
+    <li>Use Vercel Postgres (or external Dolt)</li>
+    <li>Set <code>output: 'standalone'</code> in <code>svelte.config.js</code></li>
+    <li>Deploy; Vercel builds and runs as container</li>
+  </ul>
+
+  <div class="warning">
+    <strong>Important</strong>: Do not use SQLite file on Vercel (ephemeral filesystem). Use external DB.
+  </div>
+
+  <h2>CI/CD (GitHub Actions)</h2>
+
+  <p>Example <code>.github/workflows/ci.yml</code>:</p>
+  <pre><code>name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: dolt/dolt-postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: wagers_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports: ['5432:5432']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm run check
+      - run: npm run lint
+      - run: npm run test -- --coverage
+      - uses: codecov/codecov-action@v4</code></pre>
+
+  <p>Deploy workflow on main branch merge:</p>
+  <pre><code>name: Deploy
+on:
+  push:
+    branches: [main]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - run: docker build -t ghcr.io/your-org/wager:${{ github.sha }} .
+      - run: docker push ghcr.io/your-org/wager:${{ github.sha }}
+      - run: |
+          ssh deploy@your-server "docker pull ghcr.io/your-org/wager:${{ github.sha }} && \
+            docker-compose up -d"</code></pre>
+
+  <h2>Contributing Guidelines</h2>
+
+  <h3>Pull Request Process</h3>
+  <ol class="checklist">
+    <li>Create feature branch from <code>main</code></li>
+    <li>Make changes, add tests</li>
+    <li>Run <code>npm run check && npm run lint && npm run test</code> locally; fix errors</li>
+    <li>Commit with clear message (see <a href="https://www.conventionalcommits.org/">Conventional Commits</a>)</li>
+    <li>Push and open PR against <code>main</code></li>
+    <li>Ensure CI passes</li>
+    <li>Address review comments</li>
+    <li>Merge only after at least one approval</li>
+  </ol>
+
+  <h3>Commit Message Format</h3>
+  <p><code>type(scope): subject</code></p>
+  <ul>
+    <li><code>type</code>: feat, fix, docs, style, refactor, test, chore, build, ci</li>
+    <li><code>scope</code>: auth, wager, vote, db, api, etc.</li>
+    <li><code>subject</code>: brief description, imperative mood (e.g., "Add vote validation")</li>
+  </ul>
+  <p>Example: <code>feat(wager): add proof submission with file upload</code></p>
+
+  <h3>Code Review Checklist</h3>
+  <ul class="checklist">
+    <li>Does this change have tests?</li>
+    <li>Does it follow existing patterns?</li>
+    <li>Are there performance implications?</li>
+    <li>Are security considerations addressed (input validation, auth checks)?</li>
+    <li>Is the PR description clear?</li>
+    <li>Are migrations included if schema changed?</li>
+    <li>Are environment variables documented?</li>
+  </ul>
+
+  <h2>Troubleshooting</h2>
+
+  <h3>Database connection error</h3>
+  <p>Check <code>DATABASE_URL</code> is correct, DB file exists (SQLite) or Dolt container running. Run <code>npx prisma studio</code> to verify connection.</p>
+
+  <h3>Port already in use</h3>
+  <p>Change <code>PORT</code> in <code>.env</code> to 4317 or another free port. Find process: <code>lsof -i :4317</code>, kill if needed.</code></p>
+
+  <h3>Prisma client mismatch</h3>
+  <p>Regenerate: <code>npx prisma generate</code>. Ensure <code>@prisma/client</code> version matches <code>prisma</code> version in package.json.</p>
+
+  <h3>SSE not reconnecting</h3>
+  <p>Check browser console for CORS errors. Ensure <code>ALLOWED_ORIGINS</code> includes client origin. SSE requires persistent connection; some proxies may timeout.</p>
+
+  <h3>File uploads not working</h3>
+  <p>Verify <code>uploads/</code> directory exists and is writable. For S3, check bucket policy and API key.</p>
+
+  <hr style="margin: 3rem 0; border-color: #e5e7eb;">
+  <p style="font-size: 0.9rem; color: #6b7280;">
+    Generated: 2025-05-23
+  </p>
+</body>
+</html>

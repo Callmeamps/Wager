@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wager Tracker — PRD</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      line-height: 1.7;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 2rem;
+      color: #1f2937;
+      background: #f9fafb;
+    }
+    h1, h2, h3, h4 {
+      color: #111827;
+      margin-top: 2rem;
+    }
+    h1 {
+      border-bottom: 3px solid #4f46e5;
+      padding-bottom: 0.5rem;
+    }
+    h2 {
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 0.25rem;
+    }
+    code {
+      background: #f3f4f6;
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.9em;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+    pre {
+      background: #1f2937;
+      color: #f9fafb;
+      padding: 1rem;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+    pre code {
+      background: none;
+      color: inherit;
+      padding: 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+    }
+    th, td {
+      border: 1px solid #e5e7eb;
+      padding: 0.75rem;
+      text-align: left;
+    }
+    th {
+      background: #f3f4f6;
+      font-weight: 600;
+    }
+    ul, ol {
+      padding-left: 1.5rem;
+    }
+    .checklist {
+      list-style: none;
+      padding-left: 0;
+    }
+    .checklist li {
+      padding: 0.5rem 0;
+      padding-left: 1.5rem;
+      position: relative;
+    }
+    .checklist li::before {
+      content: "☐";
+      position: absolute;
+      left: 0;
+      color: #4f46e5;
+      font-weight: bold;
+    }
+    .completed li::before {
+      content: "☑";
+      color: #10b981;
+    }
+    .note {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      padding: 1rem;
+      margin: 1rem 0;
+      border-radius: 0 8px 8px 0;
+    }
+    .warning {
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 1rem;
+      margin: 1rem 0;
+      border-radius: 0 8px 8px 0;
+    }
+    a {
+      color: #4f46e5;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .nav {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      padding: 1rem;
+      background: #eef2ff;
+      border-radius: 8px;
+    }
+    .nav a {
+      color: #3730a3;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a href="../README.html">← Back to Docs</a>
+    <span style="margin-left: auto; color: #6b7280;">PRD v1.0</span>
+  </nav>
+
+  <h1>Wager Tracker Upgrade — SvelteKit + SQLite/Dolt</h1>
+
+  <h2>Executive Summary</h2>
+  <p><strong>Project</strong>: Upgrade Wager/Dare Tracker from MVP (Express + vanilla HTML + JSON file) to production-grade application.<br>
+  <strong>Stack</strong>: SvelteKit (frontend+API), SQLite (embedded) or Dolt (versioned), Tailwind CSS, Cloudflare/Netlify/Vercel hosting.<br>
+  <strong>Goal</strong>: Reliable, secure, maintainable wager tracking with real-time updates, audit trail, and scalable foundation.</p>
+
+  <h2>Current State Problems</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Issue</th>
+        <th>Impact</th>
+        <th>Fix</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Port mismatch (3030 vs 3000)</td>
+        <td>Frontend cannot connect</td>
+        <td>Align ports; use env var PORT</td>
+      </tr>
+      <tr>
+        <td>JSON file storage</td>
+        <td>Race conditions, no concurrency, no query, no backup</td>
+        <td>Migrate to SQLite/Dolt</td>
+      </tr>
+      <tr>
+        <td>No validation</td>
+        <td>Bad data, crashes</td>
+        <td>Add Zod/valibot on all inputs</td>
+      </tr>
+      <tr>
+        <td>No auth</td>
+        <td>Anyone can tamper</td>
+        <td>Add user accounts (JWT + session fallback)</td>
+      </tr>
+      <tr>
+        <td>Single-file backend</td>
+        <td>Unmaintainable</td>
+        <td>Separate routes, controllers, models, services</td>
+      </tr>
+      <tr>
+        <td>No error handling</td>
+        <td>Silent failures</td>
+        <td>Central error middleware, proper status codes</td>
+      </tr>
+      <tr>
+        <td>No logging</td>
+        <td>No observability</td>
+        <td>Structured logging (pino)</td>
+      </tr>
+      <tr>
+        <td>No rate limiting</td>
+        <td>Spam/DoS risk</td>
+        <td>express-rate-limit or SvelteKit equivalent</td>
+      </tr>
+      <tr>
+        <td>No tests</td>
+        <td>No safety net</td>
+        <td>Add unit + integration + e2e</td>
+      </tr>
+      <tr>
+        <td>No CI/CD</td>
+        <td>Manual deploy prone</td>
+        <td>GitHub Actions (test, lint, typecheck)</td>
+      </tr>
+      <tr>
+        <td>No Docker</td>
+        <td>Setup friction</td>
+        <td>Dockerfile + docker-compose</td>
+      </tr>
+      <tr>
+        <td>No responsive UI</td>
+        <td>Mobile unusable</td>
+        <td>Tailwind + responsive design</td>
+      </tr>
+      <tr>
+        <td>No real-time</td>
+        <td>Manual refresh needed</td>
+        <td>SSE or WebSocket for live updates</td>
+      </tr>
+      <tr>
+        <td>No audit trail</td>
+        <td>Cannot track changes</td>
+        <td>Database triggers or ORM hooks</td>
+      </tr>
+      <tr>
+        <td>No data backups</td>
+        <td>Loss risk</td>
+        <td>SQLite/Dolt versioning + export</td>
+      </tr>
+      <tr>
+        <td>Common ports</td>
+        <td>Conflicts with local services</td>
+        <td>Use 4317 (Dolt default), 5173 (SvelteKit dev), 8000 (prod)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Vision & Goals</h2>
+
+  <h3>Primary Goals</h3>
+  <ol>
+    <li><strong>Reliability</strong>: No data loss, consistent state, handle concurrent access.</li>
+    <li><strong>Security</strong>: Authentication, authorization, input validation, HTTPS, security headers.</li>
+    <li><strong>Maintainability</strong>: Clean architecture, tested, documented, modular.</li>
+    <li><strong>User Experience</strong>: Responsive, real-time updates, intuitive flows, error feedback.</li>
+    <li><strong>Observability</strong>: Logging, health checks, metrics (optional phase 2).</li>
+    <li><strong>Portability</strong>: Deploy anywhere (edge-friendly, Docker).</li>
+  </ol>
+
+  <h3>Success Metrics</h3>
+  <ul>
+    <li>Zero data corruption in concurrent edit tests</li>
+    <li>100% API route test coverage</li>
+    <li>Lighthouse accessibility + performance >90</li>
+    <li>&lt;200ms average API response time (p95)</li>
+    <li>Initial load &lt;2s on 3G</li>
+  </ul>
+
+  <h2>Technical Architecture</h2>
+
+  <div class="note">
+    <strong>Note</strong>: SvelteKit serves both frontend (SSR) and backend (API routes) from single project.
+  </div>
+
+  <h3>Component Diagram</h3>
+  <pre><code>┌─────────────────────────────────────────────────────────┐
+│                    SvelteKit App (edge)                │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  │
+│  │   Pages     │  │  Components │  │   Stores    │  │
+│  └─────────────┘  └─────────────┘  └─────────────┘  │
+│  ┌───────────────────────────────────────────────┐  │
+│  │              SvelteKit API Routes             │  │
+│  │   (server-side, +layout.server, +server.ts)   │  │
+│  └───────────────────────────────────────────────┘  │
+│  ┌───────────────────────────────────────────────┐  │
+│  │            Hooks (handle, hooks.server)       │  │
+│  │   auth, rate-limit, logging, error handling  │  │
+│  └───────────────────────────────────────────────┘  │
+└───────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────┐
+│                    Database Layer                      │
+│  ┌───────────────────────────────────────────────┐    │
+│  │   DoltgreSQL (Dolt in PostgreSQL mode)       │    │
+│  │   or SQLite with better-sqlite3              │    │
+│  │   Data: wagers, users, proofs, votes, audit │    │
+│  └───────────────────────────────────────────────┘    │
+│  ┌───────────────────────────────────────────────┐    │
+│  │   ORM: Prisma (preferred) or Drizzle          │    │
+│  │   Schema defined, migrations automated       │    │
+│  └───────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────┘</code></pre>
+
+  <h3>Technology Choices</h3>
+  <table>
+    <tr><th>SvelteKit</th><td>SSR+SSG, file-based routing, built-in API routes, smaller bundles, edge runtime</td></tr>
+    <tr><th>Dolt</th><td>Git-like versioning, MySQL-compatible SQL, branch/merge/audit built-in</td></tr>
+    <tr><th>SQLite</th><td>Zero config, single file, fast for small datasets; fallback if Dolt complexity too high initially</td></tr>
+    <tr><th>Prisma</th><td>Type-safe ORM, migrations, multi-db support</td></tr>
+    <tr><th>Tailwind CSS</th><td>Utility-first, consistent design system</td></tr>
+    <tr><th>Lucia/Better-Auth</th><td>Session auth without JWT complexity</td></tr>
+  </table>
+
+  <div class="warning">
+    <strong>Port Allocation</strong>: Avoid common ports. Use 5173 (dev) or 4317 (prod) for SvelteKit. Dolt PostgreSQL default is 5432.
+  </div>
+
+  <h2>Data Model</h2>
+
+  <h3>Prisma Schema</h3>
+  <pre><code>generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" // or "postgresql" for Dolt
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdWagers Wager[] @relation("CreatorWagers")
+  participations WagerParticipant[]
+  votes        Vote[]
+  proofs       Proof[]
+}
+
+model Wager {
+  id           String   @id @default(uuid())
+  title        String
+  description  String?
+  stakeAmount   Decimal?
+  stakeCurrency String  @default("USD")
+  deadline     DateTime?
+  status       WagerStatus @default(PENDING)
+  resolution   WagerResolution?
+  createdBy    String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  creator    User    @relation("CreatorWagers", fields: [createdBy], references: [id])
+  participants WagerParticipant[]
+  proofs      Proof[]
+  votes       Vote[]
+  comments    Comment[]
+
+  @@index([status])
+  @@index([deadline])
+  @@index([createdBy])
+}
+
+model WagerParticipant {
+  wagerId     String
+  userId      String
+  joinedAt    DateTime @default(now())
+
+  wager Wager @relation(fields: [wagerId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([wagerId, userId])
+}
+
+model Proof {
+  id        String   @id @default(uuid())
+  wagerId   String
+  userId    String
+  link      String
+  evidence  String?
+  createdAt DateTime @default(now())
+
+  wager Wager @relation(fields: [wagerId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@index([wagerId])
+  @@index([userId])
+}
+
+model Vote {
+  id       String   @id @default(uuid())
+  wagerId  String
+  voterId  String
+  isValid  Boolean
+  comment  String?
+  createdAt DateTime @default(now())
+
+  wager  Wager @relation(fields: [wagerId], references: [id], onDelete: Cascade)
+  voter  User  @relation(fields: [voterId], references: [id])
+
+  @@unique([wagerId, voterId])
+  @@index([wagerId])
+  @@index([voterId])
+}
+
+model Comment {
+  id       String   @id @default(uuid())
+  wagerId  String
+  userId   String
+  content  String
+  createdAt DateTime @default(now())
+
+  wager Wager @relation(fields: [wagerId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@index([wagerId])
+  @@index([userId])
+}
+
+enum WagerStatus {
+  PENDING
+  SUBMITTED
+  VOTING
+  RESOLVED
+  CANCELLED
+}
+
+enum WagerResolution {
+  WON
+  LOST
+  TIE
+  DISPUTED
+}</code></pre>
+
+  <h3>Audit Trail</h3>
+  <p>If using SQLite, create <code>AuditLog</code> model with: <code>action</code>, <code>table</code>, <code>recordId</code>, <code>changedBy</code>, <code>changedAt</code>, <code>oldValue</code>, <code>newValue</code> (JSON).<br>
+  If using Dolt: built-in history via <code>dolt sql -q "SELECT * FROM dolt_diff..."</code> or <code>dolt log</code>.</p>
+
+  <h2>API Design</h2>
+
+  <p>All endpoints under <code>/api/v1/*</code>. Use JSON responses, proper HTTP status codes, consistent error format:</p>
+  <pre><code>{
+  "error": true,
+  "message": "Human-readable description",
+  "details": {} // optional context
+}</code></pre>
+
+  <h3>Authentication</h3>
+  <ul>
+    <li><code>POST /api/v1/auth/register</code> — { email, password, name? }</li>
+    <li><code>POST /api/v1/auth/login</code> — { email, password } → sets httpOnly cookie</li>
+    <li><code>POST /api/v1/auth/logout</code> — clears session</li>
+    <li><code>POST /api/v1/auth/refresh</code> — refresh access token</li>
+  </ul>
+
+  <h3>Wager Endpoints</h3>
+  <ul>
+    <li><code>GET /api/v1/wagers</code> — query: ?status=pending&limit=20&offset=0</li>
+    <li><code>POST /api/v1/wagers</code> — { title, description, stake?, participants[], deadline? }</li>
+    <li><code>GET /api/v1/wagers/:id</code></li>
+    <li><code>PATCH /api/v1/wagers/:id</code> — status change, edit (creator only)</li>
+    <li><code>DELETE /api/v1/wagers/:id</code> — soft delete (status=cancelled)</li>
+    <li><code>POST /api/v1/wagers/:id/participants</code> — { userId }</li>
+    <li><code>DELETE /api/v1/wagers/:id/participants/:userId</code></li>
+  </ul>
+
+  <h3>Proof Endpoints</h3>
+  <ul>
+    <li><code>GET /api/v1/wagers/:id/proofs</code></li>
+    <li><code>POST /api/v1/wagers/:id/proofs</code> — { link, evidence? }</li>
+    <li><code>DELETE /api/v1/proofs/:id</code></li>
+  </ul>
+
+  <h3>Vote Endpoints</h3>
+  <ul>
+    <li><code>GET /api/v1/wagers/:id/votes</code></li>
+    <li><code>POST /api/v1/wagers/:id/votes</code> — { isValid: boolean, comment?: string }</li>
+    <li><code>DELETE /api/v1/votes/:id</code></li>
+  </ul>
+
+  <h3>Comment Endpoints</h3>
+  <ul>
+    <li><code>POST /api/v1/wagers/:id/comments</code> — { content }</li>
+    <li><code>PATCH /api/v1/comments/:id</code> — { content }</li>
+    <li><code>DELETE /api/v1/comments/:id</code></li>
+  </ul>
+
+  <h3>Health & Metrics</h3>
+  <ul>
+    <li><code>GET /api/v1/health</code> — { status: 'ok', timestamp, db: 'connected' }</li>
+    <li><code>GET /api/v1/metrics</code> — Prometheus format (optional)</li>
+  </ul>
+
+  <h2>Frontend Design (SvelteKit)</h2>
+
+  <h3>File Structure</h3>
+  <pre><code>src/
+├── routes/
+│   ├── +layout.server.ts      # auth load, user session
+│   ├── +layout.svelte         # nav, Error, Loading
+│   ├── +error.svelte          # global error boundary
+│   ├── (public)/              # unauthenticated
+│   │   ├── login/
+│   │   └── register/
+│   ├── (protected)/           # authenticated
+│   │   ├── dashboard/
+│   │   │   └── +page.svelte
+│   │   ├── wagers/
+│   │   │   ├── +page.svelte         # list with filters
+│   │   │   ├── new/
+│   │   │   │   └── +page.svelte    # create form
+│   │   │   └── [id]/
+│   │   │       ├── +page.svelte    # detail + vote
+│   │   │       └── edit/
+│   │   └── profile/
+│   └── api/                   # API routes mirror above
+├── lib/
+│   ├── components/
+│   │   ├── WagerCard.svelte
+│   │   ├── WagerForm.svelte
+│   │   ├── ProofForm.svelte
+│   │   ├── VotePanel.svelte
+│   │   ├── CommentList.svelte
+│   │   ├── Header.svelte
+│   │   └── Toast.svelte
+│   ├── stores/
+│   │   ├── auth.ts           # session store
+│   │   └── wagers.ts         # wager list store (with polling/SSE)
+│   ├── utils/
+│   │   ├── api.ts            # fetch wrapper, error handling
+│   │   ├── validation.ts     # zod schemas
+│   │   ├── format.ts         # date, currency, status badges
+│   │   └── dolt.ts           # dolt cli wrapper for admin ops
+│   └── types.ts              # shared TypeScript interfaces
+static/
+└── (assets)</code></pre>
+
+  <h3>Key Components</h3>
+  <ul>
+    <li><strong>WagerCard</strong>: status color-coded (yellow pending, blue voting, green resolved, red cancelled). Click → detail page.</li>
+    <li><strong>WagerForm</strong>: multi-step — title → description → stake → participants → deadline → review. Inline validation.</li>
+    <li><strong>VotePanel</strong>: vote buttons (valid/invalid) disabled if already voted. Show current tally. Optional comment.</li>
+    <li><strong>ProofForm</strong>: URL input + file upload (preview). Drag/drop. Store in S3 or local <code>/uploads</code>.</li>
+    <li><strong>Toast</strong>: global notification (success/error).</li>
+    <li><strong>Header</strong>: user avatar, nav links, create wager button.</li>
+  </ul>
+
+  <h3>Real-time Strategy</h3>
+  <p><strong>Option A: SSE</strong> (simpler) — <code>/api/v1/wagers/stream</code> sends events on changes (proof added, vote cast, status update). Frontend <code>EventSource</code> updates store.</p>
+  <p><strong>Option B: WebSocket</strong> — more flexible, needed for chat/comments. Use <code>@bedframe/live</code> or custom.</p>
+  <p><strong>Initial</strong>: polling every 10s if SSE not available. Upgrade later.</p>
+
+  <h3>Styling</h3>
+  <ul>
+    <li>Tailwind CSS (JIT mode)</li>
+    <li>Custom theme:
+      <ul>
+        <li>primary: blue-600</li>
+        <li>success: green-500</li>
+        <li>warning: amber-500</li>
+        <li>danger: rose-500</li>
+        <li>neutral: slate-900/50/200</li>
+      </ul>
+    </li>
+    <li>dark mode support</li>
+    <li>responsive: mobile-first grid</li>
+  </ul>
+
+  <h2>Security Requirements</h2>
+
+  <h3>Authentication</h3>
+  <ul>
+    <li>bcrypt with cost 12</li>
+    <li>JWT access token (15min), refresh token (7d) stored httpOnly, sameSite=strict</li>
+    <li>CSRF protection (SvelteKit built-in)</li>
+    <li>Password reset flow (email)</li>
+  </ul>
+
+  <h3>Authorization</h3>
+  <ul>
+    <li>Only creator can edit/delete wager</li>
+    <li>Only participants can vote/submit proof</li>
+    <li>Admin role can resolve disputes (future)</li>
+  </ul>
+
+  <h3>Input Validation</h3>
+  <ul>
+    <li>Zod schemas server-side + client-side</li>
+    <li>Sanitize HTML in description (DOMPurify)</li>
+    <li>Max lengths: title(200), description(2000), stake(18 digits), participants(max 50)</li>
+    <li>Deadline must be future date</li>
+  </ul>
+
+  <h3>Rate Limiting</h3>
+  <ul>
+    <li>Create wager: 5/hour per user</li>
+    <li>Vote: 20/hour per user</li>
+    <li>API general: 100/min per IP</li>
+  </ul>
+
+  <h3>Headers</h3>
+  <ul>
+    <li>helmet (or SvelteKit built-in) — CSP, HSTS, X-Content-Type-Options, etc.</li>
+  </ul>
+
+  <h3>File Uploads</h3>
+  <ul>
+    <li>Validate mime type, size (&lt;10MB)</li>
+    <li>Store outside static dir, serve via signed URL</li>
+    <li>Virus scan (optional)</li>
+  </ul>
+
+  <h2>Testing Strategy</h2>
+
+  <table>
+    <tr><th>Layer</th><th>Framework</th><th>Scope</th></tr>
+    <tr><td>Unit</td><td>Vitest</td><td>pure utils, validation schemas</td></tr>
+    <tr><td>Component</td><td>Vitest + Testing Library</td><td>render props, simulate clicks</td></tr>
+    <tr><td>Integration</td><td>Supertest / @sveltejs/kit-testing</td><td>API route handlers, DB in-memory</td></tr>
+    <tr><td>E2E</td><td>Playwright</td><td>full user flows on test DB</td></tr>
+    <tr><td>Performance</td><td>Lighthouse CI</td><td>budgets on PR</td></tr>
+  </table>
+
+  <p><strong>Coverage target</strong>: 80% lines, 100% critical paths (create, vote, resolve).</p>
+  <p><strong>Test data</strong>: factory-bot or random fixtures.</p>
+
+  <h2>DevOps & Deployment</h2>
+
+  <h3>Environment</h3>
+  <pre><code>DATABASE_URL=file:./data/wagers.db
+JWT_SECRET=32byte
+PORT=4317
+NODE_ENV=production
+ALLOWED_ORIGINS=https://wager.example.com</code></pre>
+
+  <h3>Docker</h3>
+  <pre><code>FROM node:22-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM node:22-alpine AS runner
+WORKDIR /app
+COPY --from=builder /app/build ./build
+COPY --from=builder /app/package*.json ./
+RUN npm ci --only=production
+EXPOSE 4317
+CMD ["node", "build/server.js"]</code></pre>
+
+  <h3>Docker Compose (dev)</h3>
+  <pre><code>services:
+  web:
+    build: .
+    ports: ["4317:4317"]
+    environment:
+      - DATABASE_URL=file:./data/wagers.db
+      - JWT_SECRET=dev-secret
+      - NODE_ENV=development
+    volumes:
+      - ./data:/app/data
+      - ./uploads:/app/uploads
+  db:
+    image: dolt/dolt-postgres
+    ports: ["5432:5432"]
+    environment:
+      - POSTGRES_PASSWORD=localpass
+      - POSTGRES_DB=wagers
+    volumes:
+      - ./dolt-data:/var/lib/dolt</code></pre>
+
+  <h3>CI/CD (GitHub Actions)</h3>
+  <ul>
+    <li><code>ci.yml</code> on push/PR:
+      <ol>
+        <li>Setup Node</li>
+        <li>Install</li>
+        <li>Run typecheck</li>
+        <li>Run lint (eslint + prettier)</li>
+        <li>Run tests (Vitest) with coverage</li>
+        <li>Build</li>
+        <li>(optional) Deploy preview to Vercel/Netlify</li>
+      </ol>
+    </li>
+    <li><code>deploy.yml</code> on merge to main:
+      <ol>
+        <li>Build Docker image</li>
+        <li>Push to registry</li>
+        <li>SSH to server, docker compose pull, up -d</li>
+      </ol>
+    </li>
+  </ul>
+
+  <h3>Database Migrations</h3>
+  <p>Prisma: <code>prisma migrate dev</code> for local, <code>prisma migrate deploy</code> for prod. Seed script for demo data.<br>
+  Dolt: use <code>dolt sql</code> to apply migration files. Keep <code>migrations/</code> folder with numbered SQL.</p>
+
+  <h2>Implementation Phases</h2>
+
+  <h3>Phase 1: Foundation (Week 1-2)</h3>
+  <ul class="checklist">
+    <li>Initialize SvelteKit (non-common port 4317)</li>
+    <li>Setup Prisma + SQLite (local file)</li>
+    <li>Implement User model + auth endpoints (register, login, logout)</li>
+    <li>Create base layout, nav, error boundaries</li>
+    <li>Add Tailwind, configure theme</li>
+    <li>Setup CI (typecheck, lint, basic tests)</li>
+  </ul>
+
+  <h3>Phase 2: Core Wager Flow (Week 3-4)</h3>
+  <ul class="checklist">
+    <li>Build Wager CRUD API (validated)</li>
+    <li>Build UI: list page, create form, detail page</li>
+    <li>Add participant management</li>
+    <li>Implement proof submission</li>
+    <li>Implement voting</li>
+    <li>Real-time: SSE endpoint + EventSource in frontend</li>
+    <li>Write integration tests for API</li>
+  </ul>
+
+  <h3>Phase 3: Polish & Security (Week 5)</h3>
+  <ul class="checklist">
+    <li>Rate limiting middleware</li>
+    <li>Helmet/security headers</li>
+    <li>Error handling + user-friendly messages</li>
+    <li>Responsive design fixes</li>
+    <li>Accessibility audit (a11y)</li>
+    <li>Performance optimization (image lazy, code split)</li>
+  </ul>
+
+  <h3>Phase 4: Migration to Dolt (Week 6)</h3>
+  <ul class="checklist">
+    <li>Switch datasource to Dolt PostgreSQL</li>
+    <li>Add audit log table (or rely on Dolt history)</li>
+    <li>Admin endpoint: <code>dolt diff</code> between branches</li>
+    <li>Backup/export command (cron)</li>
+    <li>Stress test concurrent writes</li>
+  </ul>
+
+  <h3>Phase 5: DevEx & Ops (Week 7)</h3>
+  <ul class="checklist">
+    <li>Dockerize</li>
+    <li>Seed script with demo data</li>
+    <li>Health check + metrics endpoint</li>
+    <li>Structured logging (pino) + log aggregation</li>
+    <li>Deploy to staging (Railway/Render/Vercel)</li>
+    <li>Load test (k6 or autocannon)</li>
+  </ul>
+
+  <h3>Phase 6: Extras (Week 8+)</h3>
+  <ul class="checklist">
+    <li>Comments + mentions</li>
+    <li>Email notifications (reminders, proof submitted)</li>
+    <li>Leaderboard/profile</li>
+    <li>CSV export</li>
+    <li>PWA manifest + service worker (offline read)</li>
+    <li>Mobile app (Capacitor/Tauri) — future</li>
+  </ul>
+
+  <h2>Non-Functional Requirements</h2>
+
+  <table>
+    <tr><th>Category</th><th>Requirement</th></tr>
+    <tr><td>Performance</td><td>API p95 <200ms, SSR <1s, hydration <500ms</td></tr>
+    <tr><td>Reliability</td><td>Auto-recovery from DB connection loss; graceful degradation</td></tr>
+    <tr><td>Availability</td><td>99.9% uptime (excluding maintenance)</td></tr>
+    <tr><td>Security</td><td>No known OWASP Top 10 vulns; quarterly pen test (future)</td></tr>
+    <tr><td>Accessibility</td><td>WCAG 2.1 AA compliance</td></tr>
+    <tr><td>SEO</td><td>meta tags, Open Graph, Twitter cards</td></tr>
+    <tr><td>Backups</td><td>Daily dump + Dolt push to remote repo</td></tr>
+    <tr><td>Monitoring</td><td>Logs aggregated; alerts on errors (Sentry)</td></tr>
+    <tr><td>Scalability</td><td>Handle 100 concurrent users, 10k wagers without degradation</td></tr>
+  </table>
+
+  <h2>Risks & Mitigations</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Risk</th>
+        <th>Likelihood</th>
+        <th>Impact</th>
+        <th>Mitigation</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Dolt learning curve</td>
+        <td>high</td>
+        <td>schedule</td>
+        <td>Use SQLite first, migrate later; allocate learning time</td>
+      </tr>
+      <tr>
+        <td>Real-time complexity</td>
+        <td>medium</td>
+        <td>phase delay</td>
+        <td>Start with polling; SSE later</td>
+      </tr>
+      <tr>
+        <td>Auth implementation bugs</td>
+        <td>medium</td>
+        <td>security</td>
+        <td>Use battle-tested libs (lucia, better-auth)</td>
+      </tr>
+      <tr>
+        <td>Migration data loss</td>
+        <td>low</td>
+        <td>catastrophic</td>
+        <td>Dry-run migrations on copy; backup before prod switch</td>
+      </tr>
+      <tr>
+        <td>Performance at scale</td>
+        <td>medium</td>
+        <td>UX</td>
+        <td>Add pagination, caching (redis), DB indexes early</td>
+      </tr>
+      <tr>
+        <td>Mobile UI gaps</td>
+        <td>medium</td>
+        <td>adoption</td>
+        <td>Design responsive early; test on devices</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Open Questions</h2>
+  <ol>
+    <li><strong>Should we use Dolt from day 1?</strong><br>
+      Recommendation: start with SQLite for speed, plan migration to Dolt by Phase 4. Dolt introduces CLI ops complexity.
+    </li>
+    <li><strong>Email notifications provider?</strong><br>
+      Options: Resend, Postmark, AWS SES. Pick based on cost/volume. Phase 6.
+    </li>
+    <li><strong>File storage for proofs?</strong><br>
+      Options: local <code>/uploads</code> (simple), S3/R2 (scalable). If local, ensure backups. Phase 6.
+    </li>
+    <li><strong>Realtime need?</strong><br>
+      Initially polling OK (10s). If users want instant, add SSE. Avoid WebSocket unless chat feature confirmed.
+    </li>
+    <li><strong>Admin UI?</strong><br>
+      Initially CLI + Dolt CLI for admin tasks. If needed, add minimal admin panel later.
+    </li>
+    <li><strong>Monorepo?</strong><br>
+      No, keep single repo (SvelteKit handles API+frontend). Separate services unnecessary.
+    </li>
+    <li><strong>Docker for dev?</strong><br>
+      Optional. Use <code>docker compose</code> for DB only if Dolt. Local SQLite no container needed.
+    </li>
+  </ol>
+
+  <div class="note">
+    <strong>Next Steps</strong>: Create GitHub issues for each Phase task, scaffold SvelteKit, setup Prisma+SQLite, implement auth, build core CRUD.
+  </div>
+
+  <hr style="margin: 3rem 0; border-color: #e5e7eb;">
+  <p style="font-size: 0.9rem; color: #6b7280;">
+    Generated: 2025-05-23 | Version: 1.0.0
+  </p>
+</body>
+</html>

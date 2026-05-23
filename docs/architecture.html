@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wager Tracker — Architecture</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.7;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 2rem;
+      color: #1f2937;
+      background: #f9fafb;
+    }
+    h1 { border-bottom: 3px solid #4f46e5; padding-bottom: 0.5rem; }
+    h2 { margin-top: 2rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.25rem; }
+    code {
+      background: #f3f4f6;
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.9em;
+      font-family: monospace;
+    }
+    pre {
+      background: #1f2937;
+      color: #f9fafb;
+      padding: 1rem;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+    pre code { background: none; color: inherit; padding: 0; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+    th, td { border: 1px solid #e5e7eb; padding: 0.75rem; text-align: left; }
+    th { background: #f3f4f6; font-weight: 600; }
+    ul, ol { padding-left: 1.5rem; }
+    a { color: #4f46e5; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .nav {
+      display: flex; gap: 1rem; margin-bottom: 2rem;
+      padding: 1rem; background: #eef2ff; border-radius: 8px;
+    }
+    .card {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin: 1rem 0;
+      background: #fff;
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a href="index.html">← Docs Home</a>
+    <span style="margin-left: auto;">Architecture</span>
+  </nav>
+
+  <h1>System Architecture</h1>
+
+  <h2>Overview</h2>
+  <p>SvelteKit monolithic app with embedded database. Monolith simplifies deployment while maintaining clean separation of concerns. Database can be SQLite (dev) or Dolt (prod) with minimal code changes.</p>
+
+  <div class="card">
+    <h3>Key Principles</h3>
+    <ul>
+      <li><strong>Single deployable unit</strong>: SvelteKit builds to Node.js server; includes API routes, SSR, and static assets.</li>
+      <li><strong>Server-side rendering</strong>: Initial page load is fast, SEO-friendly.</li>
+      <li><strong>API routes co-located</strong>: <code>src/routes/api/</code> serves JSON endpoints.</li>
+      <li><strong>ORM abstraction</strong>: Prisma enables swap between SQLite and Dolt.</li>
+      <li><strong>Type safety</strong>: TypeScript end-to-end; Prisma types auto-generated.</li>
+      <li><strong>Edge ready</strong>: Can deploy to Vercel/Netlify edge functions if needed.</li>
+    </ul>
+  </div>
+
+  <h2>Architecture Diagram</h2>
+  <pre><code>┌─────────────────────────────────────────────────────────────┐
+│                        Client (Browser)                     │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  HTML/CSS/JS (Svelte compiled components)            │   │
+│  └──────────────────────────────────────────────────────┘   │
+└─────────────────────────────┬───────────────────────────────┘
+                              │ HTTPS
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Load Balancer (optional)                │
+└─────────────────────────────┬───────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                  SvelteKit Node Server (port 4317)         │
+│  ┌───────────────────────────────────────────────────────┐│
+│  │  Express-like adapter (@sveltejs/adapter-node)       ││
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐ ││
+│  │  │   SSR/R     │  │ API Routes  │  │  Static     │ ││
+│  │  │   (pages)   │  │ /api/v1/*   │  │  assets     │ ││
+│  │  └─────────────┘  └─────────────┘  └─────────────┘ ││
+│  └───────────────────────────────────────────────────────┘│
+│  ┌───────────────────────────────────────────────────────┐│
+│  │  Server Hooks (hooks.server.ts)                       ││
+│  │  ┌──────────┐ ┌──────────┐ ┌────────────────────┐   ││
+│  │  │  Auth    │ │ Rate     │ │ Error handling     │   ││
+│  │  │  (lucia) │ │ limit    │ │ (json:api errors)  │   ││
+│  │  └──────────┘ └──────────┘ └────────────────────┘   ││
+│  └───────────────────────────────────────────────────────┘│
+└─────────────────────────────┬───────────────────────────────┘
+                              │ Prisma ORM
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Database Layer                          │
+│  ┌───────────────────────────────────────────────────────┐ │
+│  │  Option A: SQLite (file:./data/wagers.db)            │ │
+│  │  - embedded, zero config, single file                │ │
+│  │  - ACID transactions, row-level locking              │ │
+│  └───────────────────────────────────────────────────────┘ │
+│  ┌───────────────────────────────────────────────────────┐ │
+│  │  Option B: Dolt (PostgreSQL mode, port 5432)         │ │
+│  │  - versioned data with Git-like operations           │ │
+│  │  - built-in audit, branch/merge, diff                │ │
+│  │  - MySQL-compatible SQL                              │ │
+│  └───────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘</code></pre>
+
+  <h2>Component Interactions</h2>
+
+  <h3>1. User Registration / Login</h3>
+  <ol>
+    <li>Client sends <code>POST /api/v1/auth/register</code> with email/password.</li>
+    <li>Server validates input (Zod), checks email uniqueness.</li>
+    <li>bcrypt hash password, create User record via Prisma.</li>
+    <li>Generate session token (or JWT), set httpOnly cookie.</li>
+    <li>Return user object (without password).</li>
+  </ol>
+
+  <h3>2. Create Wager</h3>
+  <ol>
+    <li>Client navigates to <code>/wagers/new</code> (protected route).</li>
+    <li><code>+layout.server.ts</code> loads user session, redirects if not authenticated.</li>
+    <li>Form validated client-side (Zod) and server-side (Zod).</li>
+    <li>Server creates Wager + WagerParticipant rows in transaction.</li>
+    <li>Broadcast SSE event <code>wager:created</code> to other connected clients.</li>
+    <li>Redirect to wager detail page; populate store.</li>
+  </ol>
+
+  <h3>3. Submit Proof</h3>
+  <ol>
+    <li>On wager detail page, participant clicks "submit proof".</li>
+    <li>Modal/form opens; optional file upload (multipart/form-data).</li>
+    <li>File stored to <code>/uploads</code> or S3; URL returned.</li>
+    <li>POST <code>/api/v1/wagers/:id/proofs</code> with <code>{ link: url }</code>.</li>
+    <li>Server appends Proof record, updates wager status to <code>SUBMITTED</code> if first proof.</li>
+    <li>SSE event <code>proof:added</code> broadcast.</li>
+    <li>All clients update UI; proof appears in list.</li>
+  </ol>
+
+  <h3>4. Vote</h3>
+  <ol>
+    <li>Each participant can vote once per wager.</li>
+    <li>POST <code>/api/v1/wagers/:id/votes</code> with <code>{ isValid: boolean, comment? }</code>.</li>
+    <li>Server creates Vote; if all participants voted, auto-transition to <code>RESOLVED</code> (logic: majority valid? per rules).</li>
+    <li>SSE event <code>vote:cast</code> broadcast.</li>
+    <li>Clients update vote tally; disable vote buttons if already voted.</li>
+  </ol>
+
+  <h2>Data Flow Diagrams</h2>
+
+  <h3>Wager Lifecycle State Machine</h3>
+  <pre><code>    ┌─────────┐
+    │ PENDING │
+    └────┬────┘
+         │ participants join
+         ▼
+    ┌──────────┐
+    │ SUBMITTED│ (proof submitted)
+    └────┬─────┘
+         │ all participants vote
+         ▼
+    ┌──────────┐
+    │ VOTING   │ (votes coming in)
+    └────┬─────┘
+         │ vote threshold reached OR deadline passed
+         ▼
+    ┌──────────┐
+    │ RESOLVED │ (won/lost/tie)
+    └────┬─────┘
+         │
+         ▼
+    ┌───────────┐
+    │ CANCELLED │ (manual cancel)
+    └───────────┘</code></pre>
+
+  <h3>Request Flow</h3>
+  <pre><code>Client → SvelteKit Load Function / API Route
+        ↓
+  Server Hook: Auth (verify session)
+        ↓
+  Server Hook: Rate Limiter (check limits)
+        ↓
+  Validation (Zod schema)
+        ↓
+  Prisma Query / Mutation (transaction)
+        ↓
+  Response (JSON)
+        ↓
+Client updates store (Svelte reactive)</code></pre>
+
+  <h2>Database Schema Details</h2>
+
+  <h3>Normalization</h3>
+  <ul>
+    <li><code>WagerParticipant</code> is join table (wager ↔ user). Enforces uniqueness.</li>
+    <li><code>Vote</code> has unique constraint on <code>(wagerId, voterId)</code> to prevent double-vote.</li>
+    <li><code>Proof</code> links to user and wager; multiple proofs allowed per user (history).</li>
+    <li><code>Comment</code> also linked; cascade delete on wager deletion.</li>
+  </ul>
+
+  <h3>Indexes</h3>
+  <ul>
+    <li><code>Wager.status</code> — filter by status (pending list)</li>
+    <li><code>Wager.deadline</code> — deadline notifications, sorting</li>
+    <li><code>Wager.createdBy</code> — user's wager list</li>
+    <li><code>Proof.wagerId</code> — fetch proofs for wager</li>
+    <li><code>Vote.wagerId</code> — tally votes</li>
+    <li><code>Comment.wagerId</code> — discussion feed</li>
+  </ul>
+
+  <h3>Audit Trail Implementation</h3>
+  <p><strong>SQLite approach</strong>: Create trigger on each table (INSERT/UPDATE/DELETE) that writes to <code>AuditLog</code> table. AuditLog stores:</p>
+  <ul>
+    <li><code>id</code> (uuid)</li>
+    <li><code>tableName</code> (string)</li>
+    <li><code>recordId</code> (string)</li>
+    <li><code>action</code> ('INSERT'|'UPDATE'|'DELETE')</li>
+    <li><code>oldValue</code> (JSON, null for INSERT)</li>
+    <li><code>newValue</code> (JSON, null for DELETE)</li>
+    <li><code>changedBy</code> (userId, system for automated)</li>
+    <li><code>changedAt</code> (timestamp)</li>
+  </ul>
+  <p><strong>Dolt approach</strong>: No need for custom triggers. Dolt internally tracks all changes. Use:</p>
+  <ul>
+    <li><code>dolt diff 'HEAD' 'CARET'</code> to see changes</li>
+    <li><code>dolt log --all</code> for commit history</li>
+    <li>Export as CSV for reporting</li>
+  </ul>
+
+  <h2>Security Architecture</h2>
+
+  <h3>Authentication Flow (Session-based)</h3>
+  <pre><code>1. User submits credentials → /api/v1/auth/login
+2. Verify password with bcrypt.compare
+3. Create session record in DB (UserSession table) with:
+   - id (uuid)
+   - userId
+   - tokenHash (random secret)
+   - expiresAt
+4. Set cookie: session_token=<random>, httpOnly, sameSite=strict
+5. On each request, +layout.server.ts:
+   - Read cookie
+   - Lookup session by tokenHash
+   - Verify not expired
+   - Attach user to locals
+6. Logout → delete session record, clear cookie</code></pre>
+
+  <h3>Authorization Enforcement</h3>
+  <ul>
+    <li>Every API route calls <code>requireAuth()</code> helper; returns 401 if no session.</li>
+    <li>Resource checks: e.g., <code>wager.createdBy === user.id</code> for edit.</li>
+    <li>Admin role: future <code>User.role</code> column ('admin'|'user').</li>
+  </ul>
+
+  <h3>CSP Headers</h3>
+  <pre><code>Content-Security-Policy:
+  default-src 'self';
+  script-src 'self' 'unsafe-inline'; // Svelte needs inline
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data: https:;
+  connect-src 'self' http://localhost:4317;</code></pre>
+
+  <h2>Scalability Considerations</h2>
+
+  <table>
+    <tr><th>Dimension</th><th>Current (Monolith)</th><th>Scaled (Future)</th></tr>
+    <tr><td>DB</td><td>SQLite/Dolt single node</td><td>PostgreSQL (Dolt or plain) with read replicas</td></tr>
+    <tr><td>Cache</td><td>none</td><td>Redis for session store, query cache</td></tr>
+    <tr><td>Queue</td><td>none</td><td>Background jobs (email, notifications) via BullMQ/SQlite</td></tr>
+    <tr><td>Storage</td><td>local disk</td><td>S3/R2 for file uploads</td></tr>
+    <tr><td>Auth</td><td>session table</td><td>External IdP (Auth0, Clerk) if needed</td></tr>
+    <tr><td>CDN</td><td>none</td><td>Cloudflare for static assets</td></tr>
+  </table>
+
+  <p>Monolith stays until ~10k users. Split to microservices only if clear boundary emerges (e.g., notifications).</p>
+
+  <h2>Technology Rationale</h2>
+
+  <h3>Why SvelteKit?</h3>
+  <ul>
+    <li>Less boilerplate than Next.js</li>
+    <li>Smaller bundle sizes (~30% smaller than React)</li>
+    <li>Compiler optimizations — no virtual DOM</li>
+    <li>Built-in API routes mean one framework</li>
+    <li>Great TypeScript support</li>
+  </ul>
+
+  <h3>Why Prisma?</h3>
+  <ul>
+    <li>Type-safe queries — compile errors if field wrong</li>
+    <li>Migrations included</li>
+    <li>Multi-db support (SQLite, Postgres, MySQL, SQL Server)</li>
+    <li>Introspection — generate schema from existing DB</li>
+    <li>CLI for seeding, migration, studio</li>
+  </ul>
+
+  <h3>Why Dolt?</h3>
+  <ul>
+    <li>Git operations on data: <code>dolt branch</code>, <code>dolt merge</code>, <code>dolt diff</code></li>
+    <li>Time-travel queries: <code>SELECT * FROM wagers FOR DATABASE_TAG 'main@2025-01-01'</code></li>
+    <li>Built-in data lineage</li>
+    <li>Can push/pull to remote DoltHub or self-hosted</li>
+    <li>SQL interface — no new query language</li>
+  </ul>
+
+  <h3>Why Tailwind?</h3>
+  <ul>
+    <li>Rapid UI development</li>
+    <li>No context switching to CSS files</li>
+    <li>Built-in dark mode variants</li>
+    <li>Consistent design tokens (spacing, colors)</li>
+    <li>JIT compiles only used classes → small bundle</li>
+  </ul>
+
+  <h2>Deployment Topology</h2>
+
+  <pre><code>┌──────────────────────────────────────────────┐
+│        CDN (Cloudflare / Vercel Edge)        │
+│  ┌────────────┐  ┌────────────────────────┐ │
+│  │  Static    │  │  Edge Functions /      │ │
+│  │  Assets    │  │  SSR (optional)        │ │
+│  └────────────┘  └────────────────────────┘ │
+└──────────────────┬───────────────────────────┘
+                   │
+                   ▼
+            ┌──────────────┐
+            │   Railway    │  or Render / Fly.io
+            │   Service    │  (Docker container)
+            └──────┬───────┘
+                   │
+                   ▼
+            ┌──────────────┐
+            │   Database   │
+            │  (DoltPG)    │  (managed or self-hosted)
+            └──────────────┘</code></pre>
+
+  <p><strong>Recommended host</strong>: Railway or Render for simplicity. Both support Docker, have managed PostgreSQL (for Dolt), and easy env var config. Vercel edge functions may not support long SSE connections, so use Node.js server.</p>
+
+  <hr style="margin: 3rem 0; border-color: #e5e7eb;">
+  <p style="font-size: 0.9rem; color: #6b7280;">
+    Generated: 2025-05-23
+  </p>
+</body>
+</html>
