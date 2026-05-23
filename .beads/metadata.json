@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "Wager",
+  "project_id": "2c6ba3dd-216a-47bf-9718-339a46702793"
+}
