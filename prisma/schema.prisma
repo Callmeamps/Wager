@@ -6,23 +6,24 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  avatar    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  avatar       String?
+  passwordHash String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  createdWagers Wager[] @relation("CreatorWagers")
+  createdWagers  Wager[] @relation("CreatorWagers")
   participations WagerParticipant[]
-  votes        Vote[]
-  proofs       Proof[]
-  comments     Comment[]
+  votes          Vote[]
+  proofs         Proof[]
+  comments       Comment[]
 }
 
 model Wager {

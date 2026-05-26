@@ -1,0 +1,13 @@
+services:
+  app:
+    build: .
+    ports:
+      - "4317:4317"
+    environment:
+      DATABASE_URL: "file:./prisma/data/wagers.db"
+      JWT_SECRET: "dev-change-me-at-least-16-chars"
+      NODE_ENV: "production"
+      PORT: "4317"
+      ALLOWED_ORIGINS: "http://localhost:4317"
+    volumes:
+      - ./prisma/data:/app/prisma/data

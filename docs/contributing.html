@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contributing — Wager Tracker</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.7; max-width: 1000px; margin: 0 auto; padding: 2rem; color: #1f2937; background: #f9fafb; }
+    h1 { border-bottom: 3px solid #4f46e5; padding-bottom: 0.5rem; }
+    h2 { margin-top: 2rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.25rem; }
+    code { background: #f3f4f6; padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.9em; font-family: monospace; }
+    pre { background: #1f2937; color: #f9fafb; padding: 1rem; border-radius: 8px; overflow-x: auto; }
+    pre code { background: none; color: inherit; }
+    a { color: #4f46e5; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .nav { display: flex; gap: 1rem; margin-bottom: 2rem; padding: 1rem; background: #eef2ff; border-radius: 8px; }
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { padding: 0.5rem 0; padding-left: 1.5rem; position: relative; }
+    .checklist li::before { content: "☐"; position: absolute; left: 0; color: #4f46e5; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a href="index.html">← Docs Home</a>
+    <span style="margin-left: auto;">Contributing</span>
+  </nav>
+
+  <h1>Contributing Guide</h1>
+  <p>Thanks for your interest in Wager! Here's how to get started.</p>
+
+  <h2>Development Setup</h2>
+  <pre><code>git clone https://github.com/your-org/wager.git
+cd wager
+npm ci
+npm run dev</code></pre>
+  <p>Open <code>http://localhost:4317</code> in your browser.</p>
+
+  <h2>Project Structure</h2>
+  <pre><code>wager/
+├── src/
+│   ├── lib/
+│   │   ├── db.ts              # Prisma client
+│   │   ├── validations.ts     # Zod schemas
+│   │   └── server/            # Server-only libs
+│   │       ├── auth.ts        # JWT, bcrypt helpers
+│   │       ├── rate-limit.ts  # Rate limiter
+│   │       └── require-auth.ts
+│   ├── routes/
+│   │   ├── api/v1/            # REST endpoints
+│   │   ├── login/             # Login page
+│   │   ├── register/          # Register page
+│   │   ├── wagers/            # Wager list & detail
+│   │   └── profile/           # User profile
+│   └── hooks.server.ts        # Auth & rate limit middleware
+├── prisma/
+│   └── schema.prisma          # Database schema
+├── scripts/
+│   ├── install.sh             # One-command installer
+│   ├── deploy.sh              # Deployment guide
+│   └── seed.ts                # Demo data seeder
+└── docs/                      # Documentation</code></pre>
+
+  <h2>Coding Standards</h2>
+  <ul>
+    <li><strong>TypeScript</strong> — Strict mode, no <code>any</code></li>
+    <li><strong>Svelte 5</strong> — Use runes (<code>$state</code>, <code>$derived</code>, <code>$props</code>)</li>
+    <li><strong>Files</strong> — kebab-case (<code>wager-card.svelte</code>)</li>
+    <li><strong>Components</strong> — PascalCase (<code>WagerCard</code>)</li>
+    <li><strong>Functions/vars</strong> — camelCase</li>
+  </ul>
+
+  <h2>Pull Request Process</h2>
+  <ol class="checklist">
+    <li>Create a feature branch from <code>main</code></li>
+    <li>Make changes, add tests when applicable</li>
+    <li>Run <code>npm run check</code> — must pass with 0 errors</li>
+    <li>Run <code>npm run build</code> — must succeed</li>
+    <li>Commit with <a href="https://www.conventionalcommits.org/">Conventional Commits</a> format</li>
+    <li>Push and open a PR against <code>main</code></li>
+    <li>Wait for CI to pass</li>
+    <li>Merge after review</li>
+  </ol>
+
+  <h3>Commit Format</h3>
+  <p><code>type(scope): subject</code></p>
+  <ul>
+    <li><code>feat(wager): add proof submission with file upload</code></li>
+    <li><code>fix(auth): handle duplicate email registration</code></li>
+    <li><code>docs: update README with Docker instructions</code></li>
+  </ul>
+
+  <h2>Running Tests</h2>
+  <pre><code># Type check (no runtime tests yet — PRs welcome!)
+npm run check</code></pre>
+  <p>We welcome contributions to add unit, integration, and e2e test suites.</p>
+
+  <h2>Need Ideas?</h2>
+  <p>Check the <a href="https://github.com/your-org/wager/issues">open issues</a> for feature requests and bug reports. Good starter projects:</p>
+  <ul>
+    <li>Add unit tests for validation schemas</li>
+    <li>Add e2e tests with Playwright</li>
+    <li>Email notifications (password reset, reminders)</li>
+    <li>Comments system on wagers</li>
+    <li>File upload support for proof images</li>
+    <li>PWA offline support</li>
+  </ul>
+
+  <h2>License</h2>
+  <p>By contributing, you agree that your contributions will be licensed under the MIT License.</p>
+</body>
+</html>

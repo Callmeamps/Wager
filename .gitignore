@@ -27,4 +27,15 @@ vite.config.ts.timestamp-*
 # Beads / Dolt files (added by bd init)
 .dolt/
 *.db
+*.db-journal
 .beads-credential-key
+
+# Local Dolt test data
+dolt-data/
+config.yaml
+
+# Uploads directory
+uploads/
+
+# Local SQLite data directory
+data/

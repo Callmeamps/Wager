@@ -131,6 +131,16 @@ npx prisma migrate dev --name init</code></pre>
 
   <p>Open <code>http://localhost:4317</code>. Hot reload enabled.</p>
 
+  <h2>Design System</h2>
+  <p>The project uses a unified design system defined in <code>DESIGN.md</code> at the project root.</p>
+  <ul>
+    <li><strong>Source of truth</strong>: <code>DESIGN.md</code> — YAML front matter with 53 color tokens (light + dark), 7 typography scales, spacing/rounded tokens</li>
+    <li><strong>Tailwind config</strong>: Auto-generated from DESIGN.md tokens. Theme available via Tailwind classes.</li>
+    <li><strong>Dark mode</strong>: Toggle in nav bar. Persists to <code>localStorage</code>. Default follows <code>prefers-color-scheme</code>.</li>
+    <li><strong>Component classes</strong>: <code>card</code>, <code>btn-primary</code>, <code>btn-secondary</code>, <code>input</code>, <code>badge-*</code> (status colors) — defined in <code>src/app.css</code></li>
+    <li><strong>Validate</strong>: Run <code>npx @google/design.md lint DESIGN.md</code> to check token consistency</li>
+  </ul>
+
   <h2>Project Structure</h2>
   <pre><code>wager/
 ├── src/

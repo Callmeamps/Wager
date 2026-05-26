@@ -2,17 +2,102 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --color-primary: #4f46e5;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-danger: #ef4444;
+@layer base {
+  :root {
+    --color-primary: #4f46e5;
+    --color-on-primary: #ffffff;
+    --color-primary-container: #eef2ff;
+    --color-primary-hover: #4338ca;
+    --color-bg: #ffffff;
+    --color-surface: #f9fafb;
+    --color-border: #e5e7eb;
+    --color-muted: #6b7280;
+    --color-text: #1f2937;
+    --color-heading: #111827;
+  }
+
+  .dark {
+    --color-primary: #6366f1;
+    --color-on-primary: #ffffff;
+    --color-primary-container: #1e1b4b;
+    --color-primary-hover: #818cf8;
+    --color-bg: #0f172a;
+    --color-surface: #1e293b;
+    --color-border: #334155;
+    --color-muted: #94a3b8;
+    --color-text: #e2e8f0;
+    --color-heading: #f1f5f9;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-bg text-text dark:bg-bg-dark dark:text-text-dark transition-colors duration-200;
+  }
+
+  ::selection {
+    @apply bg-primary/20 dark:bg-primary-dark/30;
+  }
 }
 
-html {
-  @apply scroll-smooth;
-}
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-on-primary px-4 py-2 rounded-md font-semibold 
+           hover:bg-primary-hover disabled:opacity-60 
+           dark:bg-primary-dark dark:text-on-primary-dark dark:hover:bg-primary-hover-dark
+           transition-colors duration-150;
+  }
 
-body {
-  @apply bg-white text-gray-900 dark:bg-gray-900 dark:text-white;
+  .btn-secondary {
+    @apply bg-transparent text-primary border border-primary px-4 py-2 rounded-md font-semibold 
+           hover:bg-primary-container
+           dark:text-primary-dark dark:border-primary-dark dark:hover:bg-primary-container-dark
+           transition-colors duration-150;
+  }
+
+  .card {
+    @apply bg-white dark:bg-surface-dark border border-border dark:border-border-dark 
+           rounded-md p-6 shadow-sm transition-colors duration-200;
+  }
+
+  .badge {
+    @apply inline-block px-3 py-1 rounded-full text-xs font-semibold;
+  }
+
+  .badge-pending {
+    @apply bg-warning-container text-warning-content 
+           dark:bg-warning-container-dark dark:text-warning-content-dark;
+  }
+
+  .badge-submitted {
+    @apply bg-primary-container text-primary-hover 
+           dark:bg-primary-container-dark dark:text-primary-hover-dark;
+  }
+
+  .badge-voting {
+    @apply bg-secondary-container text-secondary 
+           dark:bg-secondary-container-dark dark:text-secondary-dark;
+  }
+
+  .badge-resolved {
+    @apply bg-success-container text-success-content 
+           dark:bg-success-container-dark dark:text-success-content-dark;
+  }
+
+  .badge-cancelled {
+    @apply bg-danger-container text-danger-content 
+           dark:bg-danger-container-dark dark:text-danger-content-dark;
+  }
+
+  .input {
+    @apply border border-border dark:border-border-dark 
+           bg-white dark:bg-surface-dark 
+           text-text dark:text-text-dark
+           rounded-md px-3 py-2
+           focus:ring-2 focus:ring-primary dark:focus:ring-primary-dark
+           focus:border-transparent outline-none
+           transition-colors duration-150;
+  }
 }
