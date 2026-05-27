@@ -13,6 +13,12 @@
 
 	let voteIsValid = $state(true);
 	let voteComment = $state('');
+
+	let commentContent = $state('');
+	let commentError = $state('');
+	let commentSuccess = $state('');
+	let submittingComment = $state(false);
+	let cancelling = $state(false);
 	let voteError = $state('');
 	let voteSuccess = $state('');
 	let submittingVote = $state(false);
@@ -70,6 +76,31 @@
 		} catch {
 			voteError = 'Failed to cast vote';
 		} finally { submittingVote = false; }
+	}
+
+	async function submitComment(event: SubmitEvent) {
+		event.preventDefault();
+		commentError = ''; commentSuccess = ''; submittingComment = true;
+		try {
+			const res = await fetch(`/api/v1/wagers/${wager.id}/comments`, {
+				method: 'POST', headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ content: commentContent }),
+			});
+			if (!res.ok) { const b = await res.json(); commentError = b?.message || 'Failed'; return; }
+			commentSuccess = 'Comment added!';
+			commentContent = '';
+			await invalidateAll();
+		} catch { commentError = 'Failed to add comment'; } finally { submittingComment = false; }
+	}
+
+	async function cancelWager() {
+		if (!confirm('Cancel this wager?')) return;
+		cancelling = true;
+		try {
+			const res = await fetch(`/api/v1/wagers/${wager.id}`, { method: 'DELETE' });
+			if (!res.ok) return;
+			await invalidateAll();
+		} finally { cancelling = false; }
 	}
 </script>
 
@@ -167,6 +198,17 @@
 
 	<section class="card mt-6">
 		<h2 class="text-xl font-semibold text-heading dark:text-heading-dark mb-4">Comments</h2>
+
+		<form class="grid gap-3 mb-6" onsubmit={submitComment}>
+			<textarea placeholder="Add a comment..." bind:value={commentContent} class="input" required></textarea>
+			<button type="submit" class="btn-primary text-sm" disabled={submittingComment}>
+				{submittingComment ? 'Posting...' : 'Post Comment'}
+			</button>
+		</form>
+
+		{#if commentError}<p class="text-sm text-danger dark:text-danger-dark mb-3">{commentError}</p>{/if}
+		{#if commentSuccess}<p class="text-sm text-success dark:text-success-dark mb-3">{commentSuccess}</p>{/if}
+
 		{#if (wager.comments || []).length === 0}
 			<p class="text-muted dark:text-muted-dark">No comments yet.</p>
 		{:else}
@@ -180,4 +222,12 @@
 			</ul>
 		{/if}
 	</section>
+
+	{#if wager.status !== 'CANCELLED'}
+		<div class="mt-8 text-center">
+			<button class="btn-secondary text-danger dark:text-danger-dark border-danger dark:border-danger-dark" onclick={cancelWager} disabled={cancelling}>
+				{cancelling ? 'Cancelling...' : 'Cancel Wager'}
+			</button>
+		</div>
+	{/if}
 </div>
