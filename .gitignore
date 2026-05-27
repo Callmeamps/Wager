@@ -39,3 +39,6 @@ uploads/
 
 # Local SQLite data directory
 data/
+
+# Agent handoff files
+handoffs/
