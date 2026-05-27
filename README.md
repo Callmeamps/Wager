@@ -45,7 +45,7 @@ npm run seed
 | 🗳️ **Vote on outcomes** | Friends vote valid/invalid. Auto-resolves when all votes in |
 | 🔐 **User accounts** | Register/login with email + password. JWT cookie sessions |
 | 📱 **Responsive UI** | Mobile-first design with Tailwind CSS |
-| 🗄️ **Versioned data** | Built-in audit trail via Dolt (MySQL-compatible) |
+| 🗄️ **Versioned data** | Built-in audit trail via Dolt (MySQL-compatible, dev only) |
 | 🔒 **Security** | Rate limiting, CORS, CSP headers, bcrypt passwords |
 | 🐳 **Docker ready** | Dockerfile + docker-compose for self-hosting |
 
@@ -56,7 +56,7 @@ npm run seed
 ```
 Frontend:  SvelteKit 5 + Tailwind CSS 3
 Backend:   SvelteKit API routes
-Database:  SQLite (dev) / Dolt MySQL (prod)
+Database:  SQLite (local) / Dolt MySQL (optional)
 Auth:      JWT cookies + bcrypt
 ORM:       Prisma 5
 ```

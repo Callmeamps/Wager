@@ -5,65 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Wager Tracker — API Reference</title>
   <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      line-height: 1.7;
-      max-width: 1000px;
-      margin: 0 auto;
-      padding: 2rem;
-      color: #1f2937;
-      background: #f9fafb;
-    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.7; max-width: 1000px; margin: 0 auto; padding: 2rem; color: #1f2937; background: #f9fafb; }
     h1 { border-bottom: 3px solid #4f46e5; padding-bottom: 0.5rem; }
     h2 { margin-top: 2rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.25rem; }
     h3 { margin-top: 1.5rem; color: #374151; }
-    code {
-      background: #f3f4f6;
-      padding: 0.2rem 0.4rem;
-      border-radius: 4px;
-      font-size: 0.9em;
-      font-family: monospace;
-    }
-    pre {
-      background: #1f2937;
-      color: #f9fafb;
-      padding: 1rem;
-      border-radius: 8px;
-      overflow-x: auto;
-    }
-    pre code { background: none; color: inherit; padding: 0; }
+    code { background: #f3f4f6; padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.9em; font-family: monospace; }
+    pre { background: #1f2937; color: #f9fafb; padding: 1rem; border-radius: 8px; overflow-x: auto; }
+    pre code { background: none; color: inherit; }
     table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
     th, td { border: 1px solid #e5e7eb; padding: 0.75rem; text-align: left; }
     th { background: #f3f4f6; font-weight: 600; }
-    ul, ol { padding-left: 1.5rem; }
     a { color: #4f46e5; text-decoration: none; }
     a:hover { text-decoration: underline; }
-    .nav {
-      display: flex; gap: 1rem; margin-bottom: 2rem;
-      padding: 1rem; background: #eef2ff; border-radius: 8px;
-    }
-    .method {
-      display: inline-block;
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      margin-right: 0.5rem;
-    }
+    .nav { display: flex; gap: 1rem; margin-bottom: 2rem; padding: 1rem; background: #eef2ff; border-radius: 8px; }
+    .method { display: inline-block; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem; font-weight: 600; margin-right: 0.5rem; }
     .get { background: #d1fae5; color: #065f46; }
     .post { background: #dbeafe; color: #1e40af; }
     .patch { background: #fef3c7; color: #92400e; }
     .delete { background: #fee2e2; color: #991b1b; }
     .endpoint { font-family: monospace; font-size: 1.1rem; }
-    .badge {
-      display: inline-block;
-      background: #e0e7ff;
-      color: #3730a3;
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-      font-size: 0.8rem;
-      margin-right: 0.5rem;
-    }
+    .badge { display: inline-block; background: #e0e7ff; color: #3730a3; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem; margin-right: 0.5rem; }
+    .planned { background: #f3f4f6; color: #9ca3af; }
+    .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem; margin: 1rem 0; background: #fff; }
   </style>
 </head>
 <body>
@@ -73,415 +36,210 @@
   </nav>
 
   <h1>API Reference</h1>
+  <p>All endpoints prefixed with <code>/api/v1</code>. Base URL: <code>http://localhost:4317/api/v1</code> (dev).</p>
+  <p><strong>Auth:</strong> Protected routes require a JWT session cookie (set by login) or <code>Authorization: Bearer &lt;token&gt;</code> header.</p>
+  <p><strong>Error format:</strong></p>
+  <pre><code>{ "error": true, "message": "Human-readable message", "details": {} }</code></pre>
 
-  <p>All endpoints are prefixed with <code>/api/v1</code>. Base URL: <code>https://wager.example.com/api/v1</code> (production) or <code>http://localhost:4317/api/v1</code> (dev).</p>
-
-  <p><strong>Authentication</strong>: Protected routes require an <code>Authorization: Bearer &lt;token&gt;</code> header OR a session cookie (httpOnly). The token is a JWT valid for 15 minutes. Refresh with <code>POST /auth/refresh</code>.</p>
-
-  <p><strong>Error format</strong>:</p>
-  <pre><code>{
-  "error": true,
-  "message": "Human-readable error message",
-  "code": "VALIDATION_ERROR", // optional
-  "details": {} // optional additional context
-}</code></pre>
-
-  <h2>Authentication Endpoints</h2>
+  <h2>Authentication (Public)</h2>
 
   <div class="card">
     <h3><span class="method post">POST</span> <span class="endpoint">/auth/register</span></h3>
-    <p>Create new user account.</p>
-    <h4>Request Body</h4>
-    <pre><code>{
-  "email": "user@example.com",
-  "password": "securePassword123",
-  "name": "Optional Name"
-}</code></pre>
-    <h4>Responses</h4>
-    <ul>
-      <li><strong>201 Created</strong>: <code>{ "user": { "id": "...", "email": "...", "name": "..." } }</code></li>
-      <li><strong>400 Bad Request</strong>: Validation error (email invalid, password too short)</li>
-      <li><strong>409 Conflict</strong>: Email already exists</li>
-    </ul>
-    <span class="badge">Public</span>
+    <p>Create account. Sets auth cookie on success.</p>
+    <pre><code>// Request
+{ "email": "user@example.com", "password": "securePassword123", "name": "Optional" }
+// 201
+{ "user": { "id": "...", "email": "...", "name": "..." } }
+// 400 — Validation error
+// 409 — Email exists</code></pre>
+    <span class="badge">Implemented</span>
   </div>
 
   <div class="card">
     <h3><span class="method post">POST</span> <span class="endpoint">/auth/login</span></h3>
-    <p>Authenticate, receive JWT + refresh token (set as cookies).</p>
-    <h4>Request Body</h4>
-    <pre><code>{
-  "email": "user@example.com",
-  "password": "securePassword123"
-}</code></pre>
-    <h4>Responses</h4>
-    <ul>
-      <li><strong>200 OK</strong>: <code>{ "user": {...}, "accessToken": "jwt..." }</code>; cookie: <code>refresh_token=...</code></li>
-      <li><strong>401 Unauthorized</strong>: Invalid credentials</li>
-    </ul>
-    <span class="badge">Public</span>
+    <p>Authenticate. Sets auth cookie.</p>
+    <pre><code>// Request
+{ "email": "user@example.com", "password": "securePassword123" }
+// 200
+{ "user": { "id": "...", "email": "...", "name": "..." } }
+// 401 — Invalid credentials</code></pre>
+    <span class="badge">Implemented</span>
   </div>
 
   <div class="card">
     <h3><span class="method post">POST</span> <span class="endpoint">/auth/logout</span></h3>
-    <p>Invalidate session. Clears session cookie.</p>
-    <h4>Responses</h4>
-    <ul>
-      <li><strong>204 No Content</strong></li>
-    </ul>
-    <span class="badge">Auth</span>
+    <p>Clear auth cookie.</p>
+    <pre><code>// 200
+{ "ok": true }</code></pre>
+    <span class="badge">Implemented</span>
   </div>
 
   <div class="card">
+    <h3><span class="method get">GET</span> <span class="endpoint">/auth/me</span></h3>
+    <p>Get current user from session.</p>
+    <pre><code>// 200
+{ "user": { "id": "...", "email": "...", "name": "...", "avatar": null } }
+// 401 — Not logged in</code></pre>
+    <span class="badge">Protected</span>
+  </div>
+
+  <div class="card planned">
     <h3><span class="method post">POST</span> <span class="endpoint">/auth/refresh</span></h3>
-    <p>Exchange refresh token cookie for new access token.</p>
-    <h4>Responses</h4>
-    <ul>
-      <li><strong>200 OK</strong>: <code>{ "accessToken": "new-jwt..." }</code></li>
-      <li><strong>401 Unauthorized</strong>: Invalid/expired refresh token</li>
-    </ul>
-    <span class="badge">Auth</span>
+    <p>Refresh JWT token. <em>Not yet implemented.</em></p>
+    <span class="badge" style="background:#f3f4f6;color:#9ca3af;">Planned</span>
   </div>
 
-  <h2>User Endpoints</h2>
-
-  <div class="card">
-    <h3><span class="method get">GET</span> <span class="endpoint">/users/me</span></h3>
-    <p>Get current user profile.</p>
-    <h4>Responses</h4>
-    <ul>
-      <li><strong>200 OK</strong>: <code>{ "id": "...", "email": "...", "name": "...", "createdAt": "..." }</code></li>
-      <li><strong>401 Unauthorized</strong></li>
-    </ul>
-    <span class="badge">Protected</span>
-  </div>
-
-  <div class="card">
-    <h3><span class="method patch">PATCH</span> <span class="endpoint">/users/me</span></h3>
-    <p>Update current user profile.</p>
-    <h4>Request Body</h4>
-    <pre><code>{
-  "name": "New Name",
-  "avatar": "url-to-image" // optional
-}</code></pre>
-    <h4>Responses</h4>
-    <ul>
-      <li><strong>200 OK</strong>: Updated user object</li>
-      <li><strong>400</strong>: Validation error</li>
-      <li><strong>401</strong>: Unauthorized</li>
-    </ul>
-    <span class="badge">Protected</span>
-  </div>
-
-  <h2>Wager Endpoints</h2>
+  <h2>Wagers (Protected)</h2>
 
   <div class="card">
     <h3><span class="method get">GET</span> <span class="endpoint">/wagers</span></h3>
-    <p>List wagers with filters.</p>
-    <h4>Query Parameters</h4>
-    <table>
-      <tr><th>status</th><td>Filter by status: pending, submitted, voting, resolved, cancelled</td></tr>
-      <tr><th>createdBy</th><td>Filter by user ID</td></tr>
-      <tr><th>participant</th><td>Filter by participant user ID</td></tr>
-      <tr><th>limit</th><td>Number of results (default 20, max 100)</td></tr>
-      <tr><th>offset</th><td>Pagination offset (default 0)</td></tr>
-      <tr><th>sort</th><td>Field to sort by: createdAt, deadline (default: createdAt desc)</td></tr>
-    </table>
-    <h4>Responses</h4>
-    <ul>
-      <li><strong>200 OK</strong>: <code>{ "wagers": [ {...}, ... ], "total": 42, "limit": 20, "offset": 0 }</code></li>
-    </ul>
+    <p>List wagers. Supports filters via query string.</p>
+    <pre><code>// Query: ?status=pending&limit=20&offset=0&sort=createdAt
+// 200
+{ "wagers": [ { ... } ], "total": 42 }</code></pre>
     <span class="badge">Protected</span>
   </div>
 
   <div class="card">
     <h3><span class="method post">POST</span> <span class="endpoint">/wagers</span></h3>
-    <p>Create new wager.</p>
-    <h4>Request Body</h4>
-    <pre><code>{
+    <p>Create a wager. You must include yourself in participants.</p>
+    <pre><code>// Request
+{
   "title": "Run 5km under 25min",
-  "description": "We both run 5km, faster time wins",
-  "stake": {
-    "amount": "20.00", // string to avoid float issues, in stakeCurrency units
-    "currency": "USD"
-  },
-  "participants": ["user-id-1", "user-id-2"], // must include self
-  "deadline": "2025-06-30T23:59:59Z" // ISO 8601, optional
-}</code></pre>
-    <h4>Responses</h4>
-    <ul>
-      <li><strong>201 Created</strong>: <code>{ "wager": { ...full wager object... } }</code></li>
-      <li><strong>400</strong>: Validation failed</li>
-      <li><strong>401</strong>: Unauthorized</li>
-    </ul>
+  "description": "Loser buys dinner",
+  "stakeAmount": "20.00",
+  "stakeCurrency": "USD",
+  "participants": ["user-id-1", "user-id-2"],
+  "deadline": "2025-06-30T23:59:59Z"
+}
+// 201
+{ "wager": { ... } }</code></pre>
     <span class="badge">Protected</span>
   </div>
 
   <div class="card">
     <h3><span class="method get">GET</span> <span class="endpoint">/wagers/:id</span></h3>
-    <p>Get wager by ID, including proofs, votes, participants.</p>
-    <h4>Responses</h4>
-    <ul>
-      <li><strong>200 OK</strong>: Full wager object</li>
-      <li><strong>404 Not Found</strong>: Wager doesn't exist</li>
-    </ul>
+    <p>Get wager with participants, proofs, votes, comments.</p>
+    <pre><code>// 200
+{ "wager": { "id": "...", "title": "...", "status": "PENDING", "participants": [], "proofs": [], "votes": [], "comments": [] } }
+// 404 — Not found</code></pre>
     <span class="badge">Protected</span>
   </div>
 
   <div class="card">
     <h3><span class="method patch">PATCH</span> <span class="endpoint">/wagers/:id</span></h3>
-    <p>Update wager (only creator can edit). Partial update.</p>
-    <h4>Request Body</h4>
-    <pre><code>{
-  "title": "Updated title", // optional
-  "description": "Updated desc",
-  "deadline": "2025-07-01T00:00:00Z",
-  "status": "CANCELLED" // only allowed values: CANCELLED
-}</code></pre>
-    <h4>Responses</h4>
-    <ul>
-      <li><strong>200 OK</strong>: Updated wager</li>
-      <li><strong>403 Forbidden</strong>: Not creator</li>
-      <li><strong>404</strong>: Not found</li>
-    </ul>
+    <p>Update wager (creator only). Partial update.</p>
+    <pre><code>// Request
+{ "title": "Updated title", "status": "CANCELLED" }
+// 200
+{ "wager": { ... } }
+// 403 — Not creator</code></pre>
     <span class="badge">Protected</span>
   </div>
 
   <div class="card">
     <h3><span class="method delete">DELETE</span> <span class="endpoint">/wagers/:id</span></h3>
-    <p>Cancel wager (soft delete). Sets status = CANCELLED.</p>
-    <h4>Responses</h4>
-    <ul>
-      <li><strong>204 No Content</strong></li>
-      <li><strong>403 Forbidden</strong>: Not creator</li>
-      <li><strong>404</strong>: Not found</li>
-    </ul>
+    <p>Cancel wager (soft delete, sets status CANCELLED). Creator only.</p>
+    <pre><code>// 204 — No content
+// 403 — Not creator</code></pre>
     <span class="badge">Protected</span>
   </div>
 
-  <div class="card">
+  <div class="card planned">
     <h3><span class="method post">POST</span> <span class="endpoint">/wagers/:id/participants</span></h3>
-    <p>Add participant to wager (creator only).</p>
-    <h4>Request Body</h4>
-    <pre><code>{
-  "userId": "user-id-to-add"
-}</code></pre>
-    <h4>Responses</h4>
-    <ul>
-      <li><strong>200 OK</strong>: Updated wager</li>
-      <li><strong>403</strong>: Not creator</li>
-      <li><strong>409</strong>: Already participant</li>
-    </ul>
-    <span class="badge">Protected</span>
+    <p>Add participant. <em>Not yet implemented.</em></p>
+    <span class="badge" style="background:#f3f4f6;color:#9ca3af;">Planned</span>
   </div>
 
-  <h2>Proof Endpoints</h2>
-
-  <div class="card">
-    <h3><span class="method get">GET</span> <span class="endpoint">/wagers/:id/proofs</span></h3>
-    <p>List all proofs for a wager.</p>
-    <h4>Responses</h4>
-    <ul>
-      <li><strong>200 OK</strong>: <code>{ "proofs": [ {"id":"...", "user":{...}, "link":"...", "createdAt":"..."}, ... ] }</code></li>
-      <li><strong>404</strong>: Wager not found</li>
-    </ul>
-    <span class="badge">Protected</span>
-  </div>
+  <h2>Proofs (Protected)</h2>
 
   <div class="card">
     <h3><span class="method post">POST</span> <span class="endpoint">/wagers/:id/proofs</span></h3>
-    <p>Submit proof for current user.</p>
-    <h4>Request Body (multipart or JSON)</h4>
-    <pre><code>{
-  "link": "https://example.com/proof.jpg", // required
-  "evidence": "base64-encoded..." // optional for file uploads
-}</code></pre>
-    <h4>Responses</h4>
-    <ul>
-      <li><strong>201 Created</strong>: <code>{ "proof": {...} }</code></li>
-      <li><strong>400</strong>: Not a participant, or wager not in correct status</li>
-      <li><strong>404</strong>: Wager not found</li>
-    </ul>
+    <p>Submit proof. Participant only. Auto-transitions wager to SUBMITTED.</p>
+    <pre><code>// Request
+{ "link": "https://example.com/proof.jpg", "evidence": "Optional notes" }
+// 201
+{ "proof": { "id": "...", "link": "...", "user": { ... } } }
+// 403 — Not participant</code></pre>
     <span class="badge">Protected</span>
   </div>
 
-  <div class="card">
+  <div class="card planned">
     <h3><span class="method delete">DELETE</span> <span class="endpoint">/proofs/:id</span></h3>
-    <p>Delete proof. Only proof owner or wager creator can delete.</p>
-    <h4>Responses</h4>
-    <ul>
-      <li><strong>204 No Content</strong></li>
-      <li><strong>403</strong>: Not authorized</li>
-      <li><strong>404</strong>: Proof not found</li>
-    </ul>
-    <span class="badge">Protected</span>
+    <p>Delete proof. <em>Not yet implemented.</em></p>
+    <span class="badge" style="background:#f3f4f6;color:#9ca3af;">Planned</span>
   </div>
 
-  <h2>Vote Endpoints</h2>
-
-  <div class="card">
-    <h3><span class="method get">GET</span> <span class="endpoint">/wagers/:id/votes</span></h3>
-    <p>List all votes for a wager.</p>
-    <h4>Responses</h4>
-    <ul>
-      <li><strong>200 OK</strong>: <code>{ "votes": [ {"id":"...", "voter":{...}, "isValid":true, "comment":"...", "createdAt":"..."}, ... ] }</code></li>
-    </ul>
-    <span class="badge">Protected</span>
-  </div>
+  <h2>Votes (Protected)</h2>
 
   <div class="card">
     <h3><span class="method post">POST</span> <span class="endpoint">/wagers/:id/votes</span></h3>
-    <p>Cast vote. Participant only; one vote per wager.</p>
-    <h4>Request Body</h4>
-    <pre><code>{
-  "isValid": true, // boolean
-  "comment": "Optional reasoning" // optional
-}</code></pre>
-    <h4>Responses</h4>
-    <ul>
-      <li><strong>201 Created</strong>: <code>{ "vote": {...} }</code></li>
-      <li><strong>400</strong>: Already voted or not participant</li>
-      <li><strong>404</strong>: Wager not found</li>
-    </ul>
+    <p>Cast vote. One per participant. Auto-resolves wager when all votes in.</p>
+    <pre><code>// Request
+{ "isValid": true, "comment": "Legit!" }
+// 201
+{ "vote": { ... }, "tally": { "totalVotes": 2, "validVotes": 1, "invalidVotes": 1 } }
+// 409 — Already voted</code></pre>
     <span class="badge">Protected</span>
   </div>
 
-  <div class="card">
+  <div class="card planned">
     <h3><span class="method delete">DELETE</span> <span class="endpoint">/votes/:id</span></h3>
-    <p>Retract vote. Only voter can delete.</p>
-    <h4>Responses</h4>
-    <ul>
-      <li><strong>204 No Content</strong></li>
-      <li><strong>403</strong>: Not vote owner</li>
-      <li><strong>404</strong>: Vote not found</li>
-    </ul>
-    <span class="badge">Protected</span>
+    <p>Retract vote. <em>Not yet implemented.</em></p>
+    <span class="badge" style="background:#f3f4f6;color:#9ca3af;">Planned</span>
   </div>
 
-  <h2>Comment Endpoints</h2>
+  <h2>Comments (Protected)</h2>
 
   <div class="card">
     <h3><span class="method post">POST</span> <span class="endpoint">/wagers/:id/comments</span></h3>
-    <p>Add comment to wager (any participant).</p>
-    <h4>Request Body</h4>
-    <pre><code>{
-  "content": "This is a comment"
-}</code></pre>
-    <h4>Responses</h4>
-    <ul>
-      <li><strong>201 Created</strong>: <code>{ "comment": {...} }</code></li>
-      <li><strong>400</strong>: Empty content</li>
-      <li><strong>404</strong>: Wager not found</li>
-    </ul>
+    <p>Add comment to wager.</p>
+    <pre><code>// Request
+{ "content": "Nice run!" }
+// 201
+{ "comment": { "id": "...", "content": "...", "user": { ... } } }</code></pre>
     <span class="badge">Protected</span>
   </div>
 
-  <div class="card">
+  <div class="card planned">
     <h3><span class="method patch">PATCH</span> <span class="endpoint">/comments/:id</span></h3>
-    <p>Edit own comment.</p>
-    <h4>Request Body</h4>
-    <pre><code>{
-  "content": "Updated comment"
-}</code></pre>
-    <h4>Responses</h4>
-    <ul>
-      <li><strong>200 OK</strong>: Updated comment</li>
-      <li><strong>403</strong>: Not comment owner</li>
-    </ul>
-    <span class="badge">Protected</span>
+    <p>Edit comment. <em>Not yet implemented.</em></p>
+    <span class="badge" style="background:#f3f4f6;color:#9ca3af;">Planned</span>
   </div>
 
-  <div class="card">
+  <div class="card planned">
     <h3><span class="method delete">DELETE</span> <span class="endpoint">/comments/:id</span></h3>
-    <p>Delete comment (owner or wager creator).</p>
-    <h4>Responses</h4>
-    <ul>
-      <li><strong>204 No Content</strong></li>
-      <li><strong>403</strong>: Not authorized</li>
-    </ul>
-    <span class="badge">Protected</span>
+    <p>Delete comment. <em>Not yet implemented.</em></p>
+    <span class="badge" style="background:#f3f4f6;color:#9ca3af;">Planned</span>
   </div>
 
-  <h2>Health & Monitoring</h2>
+  <h2>Health</h2>
 
   <div class="card">
     <h3><span class="method get">GET</span> <span class="endpoint">/health</span></h3>
-    <p>Health check endpoint for load balancers.</p>
-    <h4>Responses</h4>
-    <ul>
-      <li><strong>200 OK</strong>: <code>{ "status": "ok", "timestamp": "2025-05-23T...", "db": "connected", "uptime": 12345 }</code></li>
-      <li><strong>503 Service Unavailable</strong>: DB down</li>
-    </ul>
+    <p>Health check. Returns 503 if DB disconnected.</p>
+    <pre><code>// 200
+{ "status": "ok", "db": "connected", "uptime": 12345, "timestamp": "..." }
+// 503 — DB down</code></pre>
     <span class="badge">Public</span>
   </div>
 
-  <div class="card">
-    <h3><span class="method get">GET</span> <span class="endpoint">/metrics</span></h3>
-    <p>Prometheus metrics (if enabled).</p>
-    <h4>Responses</h4>
-    <ul>
-      <li><strong>200 OK</strong>: text/plain with metrics in Prometheus format</li>
-    </ul>
-    <span class="badge">Public</span>
-  </div>
-
-  <h2>Real-time Stream</h2>
-
-  <div class="card">
-    <h3><span class="method get">GET</span> <span class="endpoint">/wagers/stream</span></h3>
-    <p>Server-Sent Events stream for live wager updates.</p>
-    <h4>Query Parameters</h4>
-    <table>
-      <tr><th>since</th><td>ISO timestamp, only send events after this</td></tr>
-    </table>
-    <h4>Event Types</h4>
-    <pre><code>event: wager_created
-data: {"id":"...","title":"...","status":"PENDING",...}
-
-event: proof_added
-data: {"wagerId":"...","proofId":"...","userId":"..."}
-
-event: vote_cast
-data: {"wagerId":"...","voteId":"...","voterId":"...","isValid":true}
-
-event: wager_updated
-data: {"id":"...","status":"RESOLVED","resolution":"WON"}
-
-event: heartbeat
-data: {"timestamp":"..."}</code></pre>
-    <p>Client reconnects automatically on disconnect.</p>
-    <span class="badge">Protected</span>
-  </div>
-
-  <h2>Rate Limits</h2>
+  <h2>Status Codes</h2>
   <table>
-    <tr><th>Endpoint</th><th>Limit</th></tr>
-    <tr><td>POST /wagers</td><td>5 per hour</td></tr>
-    <tr><td>POST /wagers/*/votes</td><td>20 per hour</td></tr>
-    <tr><td>POST /wagers/*/proofs</td><td>10 per hour</td></tr>
-    <tr><td>POST /comments</td><td>60 per hour</td></tr>
-    <tr><td>All others</td><td>100 per minute (IP-based)</td></tr>
+    <tr><th>Code</th><th>Meaning</th></tr>
+    <tr><td>200</td><td>OK</td></tr>
+    <tr><td>201</td><td>Created</td></tr>
+    <tr><td>204</td><td>No Content (DELETE)</td></tr>
+    <tr><td>400</td><td>Validation error</td></tr>
+    <tr><td>401</td><td>Unauthorized</td></tr>
+    <tr><td>403</td><td>Forbidden (not owner/participant)</td></tr>
+    <tr><td>404</td><td>Not found</td></tr>
+    <tr><td>409</td><td>Conflict (duplicate vote, existing email)</td></tr>
+    <tr><td>429</td><td>Rate limit exceeded</td></tr>
+    <tr><td>500</td><td>Internal server error</td></tr>
+    <tr><td>501</td><td>Not implemented (auth not configured)</td></tr>
+    <tr><td>503</td><td>Service unavailable (DB down)</td></tr>
   </table>
 
-  <h2>Status Codes Summary</h2>
-  <table>
-    <tr><th>Code</th><th>Meaning</th><th>Used For</th></tr>
-    <tr><td>200</td><td>OK</td><td>Successful GET/PATCH</td></tr>
-    <tr><td>201</td><td>Created</td><td>Successful POST</td></tr>
-    <tr><td>204</td><td>No Content</td><td>Successful DELETE</td></tr>
-    <tr><td>400</td><td>Bad Request</td><td>Validation error</td></tr>
-    <tr><td>401</td><td>Unauthorized</td><td>Missing/invalid auth</td></tr>
-    <tr><td>403</td><td>Forbidden</td><td>Not allowed (not owner)</td></tr>
-    <tr><td>404</td><td>Not Found</td><td>Resource doesn't exist</td></tr>
-    <tr><td>409</td><td>Conflict</td><td>Duplicate (email, vote)</td></tr>
-    <tr><td>429</td><td>Too Many Requests</td><td>Rate limit exceeded</td></tr>
-    <tr><td>500</td><td>Internal Server Error</td><td>Unexpected server error</td></tr>
-    <tr><td>503</td><td>Service Unavailable</td><td>DB down, maintenance</td></tr>
-  </table>
-
-  <hr style="margin: 3rem 0; border-color: #e5e7eb;">
-  <p style="font-size: 0.9rem; color: #6b7280;">
-    Generated: 2025-05-23 | Last updated: v1.0
-  </p>
 </body>
 </html>
